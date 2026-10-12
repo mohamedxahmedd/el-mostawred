@@ -45,17 +45,11 @@ for (const [name, probs] of Object.entries(configs)) {
   });
 }
 
-test('tiny probabilities get a visible minimum wedge but keep order', () => {
-  const segs = layoutSegments([{ id: 1, probability: 0.9899 }, { id: 2, probability: 0.0001 }, { id: 3, probability: 0.01 }]);
-  assert.ok(segs[1].span >= 7 - 1e-9);
-  assert.ok(segs[2].span >= 7 - 1e-9);
-  assert.ok(segs[0].span > segs[2].span);
-});
-
-test('proportional spans when nothing is tiny', () => {
-  const segs = layoutSegments([{ id: 1, probability: 0.75 }, { id: 2, probability: 0.25 }]);
-  assert.ok(Math.abs(segs[0].span - 270) < 1e-9);
-  assert.ok(Math.abs(segs[1].span - 90) < 1e-9);
+test('slices are equal regardless of odds (odds are server-side logic only)', () => {
+  for (const probs of Object.values(configs)) {
+    const segs = layoutSegments(probs.map((probability, i) => ({ id: i + 1, probability })));
+    for (const s of segs) assert.ok(Math.abs(s.span - 360 / probs.length) < 1e-9);
+  }
 });
 
 test('motion plan matches velocity at the hand-off and covers the distance', () => {

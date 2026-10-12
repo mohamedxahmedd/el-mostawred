@@ -2,37 +2,19 @@
 // The pointer is fixed at 12 o'clock; the wheel disc rotates clockwise by `rotation` degrees.
 
 /**
- * Probability-proportional wedge spans. Wedges smaller than `minDeg` are widened to stay legible/tappable
- * and the rest shrink proportionally; the legend always shows the exact odds.
- * @param {{id:number, probability:number}[]} items in display order
+ * Equal wedges, one per item, in display order. Slice size is presentation only: the server picks the result
+ * by the configured odds, the wheel just lands inside the chosen item's slice.
+ * @param {{id:number}[]} items in display order
  * @returns {{id:number, index:number, start:number, end:number, mid:number, span:number}[]}
  */
-export function layoutSegments(items, minDeg = 7) {
+export function layoutSegments(items) {
   const n = items.length;
   if (n === 0) return [];
-  if (n === 1) return [{ id: items[0].id, index: 0, start: 0, end: 360, mid: 180, span: 360 }];
-
-  const floor = Math.min(minDeg, (360 / n) * 0.6);
-  const total = items.reduce((s, i) => s + Math.max(0, i.probability), 0) || 1;
-  let spans = items.map(i => (Math.max(0, i.probability) / total) * 360);
-
-  // Lift tiny wedges to the floor and rescale the others; repeat until stable.
-  const fixed = new Set();
-  for (let guard = 0; guard < n; guard++) {
-    let changed = false;
-    spans.forEach((s, k) => { if (!fixed.has(k) && s < floor) { fixed.add(k); changed = true; } });
-    if (!changed) break;
-    const fixedSum = fixed.size * floor;
-    const freeSum = spans.reduce((s, v, k) => (fixed.has(k) ? s : s + v), 0) || 1;
-    spans = spans.map((v, k) => (fixed.has(k) ? floor : (v / freeSum) * (360 - fixedSum)));
-  }
-
-  let cursor = 0;
+  const span = 360 / n;
   return items.map((item, index) => {
-    const span = spans[index];
-    const seg = { id: item.id, index, start: cursor, end: cursor + span, mid: cursor + span / 2, span };
-    cursor += span;
-    return seg;
+    const start = index * span;
+    const end = index === n - 1 ? 360 : start + span;
+    return { id: item.id, index, start, end, mid: (start + end) / 2, span: end - start };
   });
 }
 
