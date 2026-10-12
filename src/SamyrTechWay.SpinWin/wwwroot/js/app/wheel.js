@@ -147,11 +147,17 @@ export class Wheel {
     const ink = sun ? '#1c1004' : style === 'night' ? '#ffffff' : c.text;
     const halo = sun ? 'rgba(255,245,200,.45)' : 'rgba(0,0,0,.7)';
 
-    const lines = splitLabel(item.name, sun ? 6 : 10);
+    // A gold wedge without a picture (e.g. "خصم 200 ج") gets big text only, like the printed wheel. Any item with a
+    // photo or illustration shows it, whatever its colour, with the name near the rim.
+    const art = !item.imageUrl ? PRIZE_ART[item.icon] : null;
+    const pictured = !!item.imageUrl || !!art;
+    const big = sun && !pictured;
+
+    const lines = splitLabel(item.name, big ? 6 : 10);
     const longest = Math.max(3, ...lines.map(l => l.length));
-    const rim = sun ? 402 : 412;
+    const rim = big ? 402 : 412;
     const fitAt = r => (chord(r) * 0.86) / (longest * 0.5);
-    let fs = Math.min(sun ? 66 : 48, fitAt(rim - (lines.length > 1 ? 120 : 60)));
+    let fs = Math.min(big ? 66 : 48, fitAt(rim - (lines.length > 1 ? 120 : 60)));
     const radii = lines.map((_, i) => rim - fs * 0.6 - i * fs * 1.08);
     fs = Math.min(fs, fitAt(radii[radii.length - 1] - fs * 0.3));
     const rtl = /[\u0600-\u06FF]/.test(item.name) ? ' direction="rtl" unicode-bidi="embed"' : '';
@@ -162,13 +168,11 @@ export class Wheel {
         font-size="${fs.toFixed(1)}" font-weight="${sun ? 900 : 800}" fill="${ink}" stroke="${halo}" stroke-width="${(fs * (sun ? 0.05 : 0.12)).toFixed(1)}">${esc(line)}</text>`).join('');
     }
 
-    // Gold wedges are text only, like the printed wheel; the others carry the prize photo or icon under the text.
     let icon = '';
     const textInner = radii[radii.length - 1] - fs * 0.7;
     const iconR = Math.max(R_HUB + 70, Math.min(258, textInner - 76));
-    const art = !item.imageUrl ? PRIZE_ART[item.icon] : null;
     const iconSize = Math.min(art ? 170 : 118, chord(iconR) * (art ? 1.15 : 0.72), (textInner - R_HUB - 22) * (art ? 1.15 : 0.9));
-    if (!sun && iconSize >= 18) {
+    if (!big && iconSize >= 18) {
       if (item.imageUrl) {
         const rr = iconSize / 2;
         icon = `<clipPath id="${this.prefix}-clip-${k}"><circle cy="${-iconR}" r="${rr}"/></clipPath>
