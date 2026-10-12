@@ -16,9 +16,9 @@
     }
     <div class="form-grid">
         <p class="section-title span-2">الاسم والوصف</p>
-        <div class="field"><label class="label" asp-for="NameEn"></label><input class="input" asp-for="NameEn" /><span class="field-error" asp-validation-for="NameEn"></span></div>
+        <div class="field"><label class="label" asp-for="NameEn"></label><input class="input" asp-for="NameEn" dir="ltr" lang="en" /><span class="field-error" asp-validation-for="NameEn"></span></div>
         <div class="field"><label class="label" asp-for="NameAr"></label><input class="input" asp-for="NameAr" dir="rtl" lang="ar" /><span class="field-error" asp-validation-for="NameAr"></span></div>
-        <div class="field"><label class="label" asp-for="DescriptionEn"></label><input class="input" asp-for="DescriptionEn" /><span class="field-error" asp-validation-for="DescriptionEn"></span></div>
+        <div class="field"><label class="label" asp-for="DescriptionEn"></label><input class="input" asp-for="DescriptionEn" dir="ltr" lang="en" /><span class="field-error" asp-validation-for="DescriptionEn"></span></div>
         <div class="field"><label class="label" asp-for="DescriptionAr"></label><input class="input" asp-for="DescriptionAr" dir="rtl" lang="ar" /><span class="field-error" asp-validation-for="DescriptionAr"></span></div>
 
         <p class="section-title span-2">النسبة والتوفر</p>
@@ -105,7 +105,7 @@
                 </select>
             </div>
             <div></div>
-            <div class="field"><label class="label" asp-for="CollectionNoteEn"></label><textarea class="textarea" asp-for="CollectionNoteEn" rows="2" placeholder="اتركها فارغة لاستخدام تعليمات الاستلام الافتراضية"></textarea></div>
+            <div class="field"><label class="label" asp-for="CollectionNoteEn"></label><textarea class="textarea" asp-for="CollectionNoteEn" dir="ltr" lang="en" rows="2" placeholder="اتركها فارغة لاستخدام تعليمات الاستلام الافتراضية"></textarea></div>
             <div class="field"><label class="label" asp-for="CollectionNoteAr"></label><textarea class="textarea" asp-for="CollectionNoteAr" rows="2" dir="rtl" lang="ar"></textarea></div>
         }
     </div>

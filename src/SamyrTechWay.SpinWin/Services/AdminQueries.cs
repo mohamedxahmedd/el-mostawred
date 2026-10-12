@@ -145,7 +145,7 @@ public sealed class AdminQueries(AppDbContext db, SettingsService settings, Time
             Live = all.Where(i => !i.IsArchived).Select(Row).ToList(),
             Archived = all.Where(i => i.IsArchived).Select(Row).ToList(),
             Odds = odds,
-            Preview = odds.Eligible.Count > 0 ? WheelPresenter.Items(all, odds, new Localizer("en")) : [],
+            Preview = odds.Eligible.Count > 0 ? WheelPresenter.Items(all, odds, new Localizer("ar")) : [],
         };
     }
 

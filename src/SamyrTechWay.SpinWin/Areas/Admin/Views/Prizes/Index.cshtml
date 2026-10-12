@@ -51,7 +51,7 @@ else if (odds.Status == WheelStatus.NoEligiblePrize)
                                     </span>
                                     <span>
                                         <a class="strong" href="/admin/prizes/@it.Id/edit">@AdminText.Name(it.NameEn, it.NameAr)</a>
-                                        <small>@(it.Kind == WheelItemKind.TryAgain ? "حاول مرة أخرى · تُعيد اللفّة" : AdminText.Tier(it.CelebrationTier))@(it.NameAr is null ? "" : $" · {it.NameAr}")</small>
+                                        <small>@(it.Kind == WheelItemKind.TryAgain ? "حاول مرة أخرى · تُعيد اللفّة" : AdminText.Tier(it.CelebrationTier))@if (!string.IsNullOrWhiteSpace(it.NameAr)) {<text> · <bdi dir="ltr">@it.NameEn</bdi></text>}</small>
                                     </span>
                                 </div>
                             </td>
