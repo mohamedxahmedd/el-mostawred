@@ -54,6 +54,7 @@ Use Chrome and Safari on desktop, plus a real phone (or DevTools at 390×844), i
 - [ ] **Set spins to 0**: credits drop to 0 with a ledger entry, and the customer's wheel shows "no spins left".
 - [ ] Reset code: the old code fails, the customer's open session is signed out, and the new code works.
 - [ ] Disable a customer: their session ends and they can't sign in.
+- [ ] **Delete a customer**: refused while they have a prize awaiting delivery; otherwise the customer, spins, awards and ledger are gone, their session ends, the phone can be registered again, and the audit log keeps a "حذف عميل" row.
 - [ ] Prizes: editing one prize's weight on its edit page saves, and Try Again changes by the difference (shown in the message).
 - [ ] Prizes: allocation ≠ 100 % can't be saved. Effective odds update when stock runs out. Upload a JPEG/PNG/WebP ≤ 2 MB; a fake
   `.png` (e.g. a renamed text file) is rejected. Archiving needs the item to be inactive first.

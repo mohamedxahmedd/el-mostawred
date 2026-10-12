@@ -20,6 +20,10 @@
             <input type="hidden" name="active" value="@(!c.IsActive)" />
             <button type="submit" class="btn btn-sm @(c.IsActive ? "btn-danger" : "")"><partial name="_Icon" model="@("power")" /> @(c.IsActive ? "إيقاف" : "إعادة تفعيل")</button>
         </form>
+        <form method="post" asp-antiforgery="true" action="/admin/customers/@c.Id/delete"
+              data-confirm="حذف @c.FullName نهائيًا؟ سيتم مسح العميل ولفّاته وجوائزه وسجل رصيده، ولا يمكن التراجع عن ذلك.">
+            <button type="submit" class="btn btn-sm btn-danger"><partial name="_Icon" model="@("trash")" /> حذف العميل</button>
+        </form>
     </div>
 </div>
 

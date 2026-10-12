@@ -129,5 +129,19 @@ public sealed class CustomersController(AdminQueries queries, CustomerAdminServi
         return Redirect($"/admin/customers/{id}");
     }
 
+    [HttpPost("{id:int}/delete")]
+    public async Task<IActionResult> Delete(int id, CancellationToken ct)
+    {
+        var result = await customers.DeleteAsync(id, Actor, ct);
+        if (!result.Ok && result.Error == CustomerAdminService.CustomerNotFoundMessage) return NotFound();
+        if (!result.Ok)
+        {
+            Toast(result.Error!, "error");
+            return Redirect($"/admin/customers/{id}");
+        }
+        Toast("تم حذف العميل وكل سجلّاته نهائيًا.");
+        return Redirect("/admin/customers");
+    }
+
     private string SiteUrl() => $"{Request.Scheme}://{Request.Host}";
 }

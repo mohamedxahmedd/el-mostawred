@@ -514,6 +514,22 @@ public class WebTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Admin_can_delete_a_customer_and_their_session_ends()
+    {
+        var c = await _factory.CreateCustomerAsync(credits: 1);
+        var customer = await SignedInCustomerAsync(c.Phone, c.Code);
+        var (email, password) = await CreateAdminAsync();
+        var admin = await SignedInAdminAsync(email, password);
+
+        var res = await PostFormAsync(admin, $"/admin/customers/{c.Id}", $"/admin/customers/{c.Id}/delete", new());
+
+        Assert.Equal(HttpStatusCode.Redirect, res.StatusCode);
+        Assert.Equal("/admin/customers", res.Headers.Location?.OriginalString);
+        Assert.Equal(HttpStatusCode.NotFound, (await admin.GetAsync($"/admin/customers/{c.Id}", Ct)).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await customer.GetAsync("/api/wheel/config", Ct)).StatusCode);
+    }
+
+    [Fact]
     public async Task There_is_no_public_registration_route()
     {
         var client = NewClient();

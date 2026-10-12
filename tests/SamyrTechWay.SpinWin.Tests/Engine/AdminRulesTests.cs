@@ -236,6 +236,57 @@ public class AdminRulesTests : IAsyncLifetime
         Assert.Equal(ledgerBefore, await _host.WithDbAsync(db => db.CreditLedger.CountAsync(l => l.CustomerId == id)));
     }
 
+    private Task<ServiceResult> DeleteCustomerAsync(int id) =>
+        _host.RunAsync(sp => sp.GetRequiredService<CustomerAdminService>().DeleteAsync(id, TestHost.Admin));
+
+    [Fact]
+    public async Task Deleting_a_customer_removes_them_and_their_history_and_frees_the_phone()
+    {
+        await _host.SetWheelAsync(("Pad", WheelItemKind.Prize, 7500, null), ("Try Again", WheelItemKind.TryAgain, 2500, null));
+        const string phone = "01055556666";
+        var (id, _) = await _host.CreateCustomerWithCodeAsync(phone, credits: 2);
+        _host.Random.Next = _ => 9_999;
+        Assert.True((await _host.SpinAsync(id)).Succeeded); // Try Again
+        _host.Random.Next = _ => 0;
+        var won = await _host.SpinAsync(id);
+        Assert.Equal(DeliveryResult.Delivered,
+            await _host.RunAsync(sp => sp.GetRequiredService<AwardService>().MarkDeliveredAsync(won.Award!.Id, null, TestHost.Admin)));
+
+        var result = await DeleteCustomerAsync(id);
+
+        Assert.True(result.Ok, result.Error);
+        Assert.False(await _host.WithDbAsync(db => db.Customers.AnyAsync(c => c.Id == id)));
+        Assert.Equal(0, await _host.WithDbAsync(db => db.SpinAttempts.CountAsync(a => a.CustomerId == id)));
+        Assert.Equal(0, await _host.WithDbAsync(db => db.Awards.CountAsync(a => a.CustomerId == id)));
+        Assert.Equal(0, await _host.WithDbAsync(db => db.CreditLedger.CountAsync(l => l.CustomerId == id)));
+        Assert.Equal(1, await _host.WithDbAsync(db => db.AdminAuditLogs.CountAsync(a => a.Action == "customer.delete" && a.TargetId == id.ToString())));
+        await _host.CreateCustomerWithCodeAsync(phone); // the number can be registered again
+    }
+
+    [Fact]
+    public async Task Deleting_a_customer_is_refused_while_a_won_prize_waits_for_delivery()
+    {
+        await _host.SetWheelAsync(("Pad", WheelItemKind.Prize, 7500, null), ("Try Again", WheelItemKind.TryAgain, 2500, null));
+        var id = await _host.CreateCustomerAsync(credits: 1);
+        _host.Random.Next = _ => 0;
+        Assert.True((await _host.SpinAsync(id)).Succeeded);
+
+        var result = await DeleteCustomerAsync(id);
+
+        Assert.False(result.Ok);
+        Assert.Equal(CustomerAdminService.PendingAwardBlocksDeleteMessage, result.Error);
+        Assert.True((await _host.CustomerAsync(id)).IsActive); // a refusal leaves the customer untouched
+        Assert.Equal(1, await _host.WithDbAsync(db => db.Awards.CountAsync(a => a.CustomerId == id)));
+    }
+
+    [Fact]
+    public async Task Deleting_an_unknown_customer_fails()
+    {
+        var result = await DeleteCustomerAsync(999_999);
+        Assert.False(result.Ok);
+        Assert.Equal(CustomerAdminService.CustomerNotFoundMessage, result.Error);
+    }
+
     [Fact]
     public async Task Only_one_try_again_can_be_active()
     {

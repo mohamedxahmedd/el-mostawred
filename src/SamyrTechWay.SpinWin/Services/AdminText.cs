@@ -84,6 +84,7 @@ public static class AdminText
         "credits.revoke" => "خصم لفّات",
         "customer.activate" => "تفعيل عميل",
         "customer.create" => "إضافة عميل",
+        "customer.delete" => "حذف عميل",
         "customer.deactivate" => "إيقاف عميل",
         "customer.reset-code" => "إصدار كود دخول جديد",
         "customer.update" => "تعديل عميل",

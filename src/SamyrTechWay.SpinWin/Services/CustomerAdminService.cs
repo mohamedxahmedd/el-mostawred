@@ -254,6 +254,44 @@ public sealed class CustomerAdminService(
         }, ct);
     }
 
+    public const string PendingAwardBlocksDeleteMessage =
+        "لا يمكن حذف هذا العميل لأن لديه جائزة في انتظار التسليم. سلّم الجائزة أولًا ثم احذفه.";
+
+    /// <summary>
+    /// Permanently deletes a customer with their spins, awards and ledger (owner request). Refused while a won prize
+    /// is still owed to them. The audit log keeps a row recording who was deleted.
+    /// </summary>
+    public async Task<ServiceResult> DeleteAsync(int id, AdminActor actor, CancellationToken ct = default)
+    {
+        return await db.InTransactionAsync(async token =>
+        {
+            // Takes the customer row lock without changing anything (the transaction commits even on a refusal), so a
+            // spin either finishes before this check or waits and then finds the customer gone.
+            var locked = await db.Customers.Where(c => c.Id == id)
+                .ExecuteUpdateAsync(s => s.SetProperty(c => c.UpdatedAtUtc, c => c.UpdatedAtUtc), token);
+            if (locked == 0) return ServiceResult.Fail(CustomerNotFoundMessage);
+
+            if (await db.Awards.AnyAsync(a => a.CustomerId == id && a.Status == AwardStatus.Pending, token))
+                return ServiceResult.Fail(PendingAwardBlocksDeleteMessage);
+
+            var customer = await db.Customers.AsNoTracking().Where(c => c.Id == id)
+                .Select(c => new { c.FullName, c.NormalizedPhone }).SingleAsync(token);
+            var ledger = await db.CreditLedger.Where(l => l.CustomerId == id).ExecuteDeleteAsync(token);
+            var awards = await db.Awards.Where(a => a.CustomerId == id).ExecuteDeleteAsync(token);
+            var spins = await db.SpinAttempts.Where(a => a.CustomerId == id).ExecuteDeleteAsync(token);
+            await db.Customers.Where(c => c.Id == id).ExecuteDeleteAsync(token);
+
+            audit.Record(actor, "customer.delete", "Customer", id.ToString(), new
+            {
+                name = customer.FullName,
+                phone = PhoneNumber.Mask(customer.NormalizedPhone),
+                spins, awards, ledger,
+            });
+            await db.SaveChangesAsync(token);
+            return ServiceResult.Success;
+        }, ct);
+    }
+
     private static string? Clean(string? value)
     {
         var trimmed = value?.Trim();

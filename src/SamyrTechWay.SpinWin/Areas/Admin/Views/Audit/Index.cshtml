@@ -18,7 +18,7 @@
                 <tbody>
                     @foreach (var a in Model.Items)
                     {
-                        var link = a.TargetType switch { "Customer" => $"/admin/customers/{a.TargetId}", "WheelItem" when a.TargetId is not null => $"/admin/prizes/{a.TargetId}/edit", _ => null };
+                        var link = a.TargetType switch { "Customer" when a.Action != "customer.delete" => $"/admin/customers/{a.TargetId}", "WheelItem" when a.TargetId is not null => $"/admin/prizes/{a.TargetId}/edit", _ => null };
                         <tr>
                             <td data-label="الوقت" class="mono">@AdminText.Date(a.CreatedAtUtc, "d MMM yyyy، HH:mm:ss")</td>
                             <td data-label="المدير"><bdi>@a.AdminName</bdi></td>
