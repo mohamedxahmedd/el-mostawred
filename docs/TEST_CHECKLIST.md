@@ -35,6 +35,7 @@ Use Chrome and Safari on desktop, plus a real phone (or DevTools at 390×844), i
 - [ ] Spin: the button is disabled while spinning, the pointer lands **inside** the winning slice, ticks and sounds play, and the
   sound toggle mutes everything (and is remembered).
 - [ ] **Try Again**: the reveal says the credit is back, credits are unchanged, and spinning again works.
+- [ ] **حظ أوفر (Lose)**: the reveal says "المرة الجاية!", one credit is used, no award is created; the spin shows as "حظ أوفر" in admin `/admin/spins`.
 - [ ] **Standard / Rare / Epic** wins each show their own reveal (Epic is the biggest). The pickup note shows. Credits go down by one.
 - [ ] Reload the page right after a win: the same latest award shows and no extra credit is used.
 - [ ] Double-clicking Spin, or pressing it in two tabs at once, never uses more credits than you have.

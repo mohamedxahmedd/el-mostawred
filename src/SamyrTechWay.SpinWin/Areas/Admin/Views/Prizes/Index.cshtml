@@ -9,6 +9,7 @@
     <div style="display:flex;gap:8px;flex-wrap:wrap">
         <a class="btn btn-primary" href="/admin/prizes/create"><partial name="_Icon" model="@("plus")" /> إضافة جائزة</a>
         <a class="btn" href="/admin/prizes/create?kind=TryAgain"><partial name="_Icon" model="@("rotate-ccw")" /> إضافة عنصر «حاول مرة أخرى»</a>
+        <a class="btn" href="/admin/prizes/create?kind=Lose"><partial name="_Icon" model="@("minus")" /> إضافة شريحة «حظ أوفر»</a>
     </div>
 </div>
 
@@ -51,7 +52,7 @@ else if (odds.Status == WheelStatus.NoEligiblePrize)
                                     </span>
                                     <span>
                                         <a class="strong" href="/admin/prizes/@it.Id/edit">@AdminText.Name(it.NameEn, it.NameAr)</a>
-                                        <small>@(it.Kind == WheelItemKind.TryAgain ? "حاول مرة أخرى · تُعيد اللفّة" : AdminText.Tier(it.CelebrationTier))@if (!string.IsNullOrWhiteSpace(it.NameAr)) {<text> · <bdi dir="ltr">@it.NameEn</bdi></text>}</small>
+                                        <small>@(it.Kind switch { WheelItemKind.TryAgain => "حاول مرة أخرى · تُعيد اللفّة", WheelItemKind.Lose => "حظ أوفر · تُخصم اللفّة بلا جائزة", _ => AdminText.Tier(it.CelebrationTier) })@if (!string.IsNullOrWhiteSpace(it.NameAr)) {<text> · <bdi dir="ltr">@it.NameEn</bdi></text>}</small>
                                     </span>
                                 </div>
                             </td>
@@ -65,11 +66,11 @@ else if (odds.Status == WheelStatus.NoEligiblePrize)
                             </td>
                             <td data-label="النسبة الفعلية الآن" class="num">
                                 @if (row.Eligible) { <span class="strong"><bdi dir="ltr">@WheelPresenter.FormatPercent(row.EffectiveProbability)</bdi></span> }
-                                else if (it.IsActive && !(it.Kind == WheelItemKind.TryAgain || it.StockQuantity is null || it.StockQuantity > 0)) { <span class="badge badge-bad">نفد المخزون</span> }
+                                else if (it.IsActive && !(it.Kind != WheelItemKind.Prize || it.StockQuantity is null || it.StockQuantity > 0)) { <span class="badge badge-bad">نفد المخزون</span> }
                                 else { <span class="dim">—</span> }
                             </td>
                             <td data-label="المخزون" class="num">
-                                @if (it.Kind == WheelItemKind.TryAgain) { <span class="dim">لا ينطبق</span> }
+                                @if (it.Kind != WheelItemKind.Prize) { <span class="dim">لا ينطبق</span> }
                                 else if (it.StockQuantity is null) { <span class="dim">غير محدود</span> }
                                 else { <span class="@(row.LowStock ? "badge badge-warn" : "")">@it.StockQuantity</span> }
                             </td>
@@ -105,7 +106,7 @@ else if (odds.Status == WheelStatus.NoEligiblePrize)
             <div class="preview-wheel" dir="ltr">
                 <div class="wheel-disc" id="preview-disc"></div>
                 <svg class="wheel-frame" id="preview-frame" viewBox="-500 -500 1000 1000" aria-hidden="true"></svg>
-                <svg class="preview-pointer" viewBox="0 0 100 130" aria-hidden="true"><path d="M50 128 C34 92 10 70 10 44 A40 40 0 0 1 90 44 C90 70 66 92 50 128Z" fill="#ffd06b" stroke="#5a3204" stroke-width="3" /><circle cx="50" cy="44" r="16" fill="#d01518" stroke="#fff1c2" stroke-width="3" /></svg>
+                <svg class="preview-pointer" viewBox="0 0 100 120" aria-hidden="true"><path d="M8 10 H92 L50 112 Z" fill="#e3201b" stroke="#060506" stroke-width="9" stroke-linejoin="round" /></svg>
             </div>
             <ul class="legend-list" style="list-style:none;padding:0;margin:14px 0 0;display:grid;gap:6px">
                 @foreach (var p in Model.Preview)

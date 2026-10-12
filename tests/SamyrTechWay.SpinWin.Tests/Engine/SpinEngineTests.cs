@@ -26,6 +26,44 @@ public class SpinEngineTests : IAsyncLifetime
     private void ForceRetry() => ForceRoll(9_999);    // last range = Try Again (when all in stock)
 
     [Fact]
+    public async Task Better_luck_slice_uses_the_credit_and_gives_no_prize_and_no_refund()
+    {
+        var ids = await Host.SetWheelAsync(
+            ("Mug", WheelItemKind.Prize, 5000, null),
+            ("Better luck", WheelItemKind.Lose, 2500, null),
+            ("Try Again", WheelItemKind.TryAgain, 2500, null));
+        var id = await Host.CreateCustomerAsync(credits: 2);
+        ForceRoll(5_000); // second range = Better luck
+
+        var outcome = await Host.SpinAsync(id);
+
+        Assert.True(outcome.Succeeded, outcome.Failure.ToString());
+        Assert.Equal(SpinResultKind.Lost, outcome.Attempt!.Kind);
+        Assert.Equal(ids["Better luck"], outcome.Attempt.WheelItemId);
+        Assert.Null(outcome.Award);
+        Assert.Equal((2, 1), (outcome.Attempt.CreditsBefore, outcome.Attempt.CreditsAfter));
+        Assert.Equal(1, (await Host.CustomerAsync(id)).SpinCredits);
+        Assert.Equal(0, await Host.WithDbAsync(db => db.Awards.CountAsync(a => a.CustomerId == id)));
+        var spinLedger = await Host.WithDbAsync(db => db.CreditLedger.Where(l => l.SpinAttemptId == outcome.Attempt.Id).ToListAsync());
+        Assert.Equal(CreditReason.SpinDebit, Assert.Single(spinLedger).Reason);
+    }
+
+    [Fact]
+    public async Task A_wheel_without_a_real_prize_blocks_spins_even_with_better_luck_slices()
+    {
+        await Host.SetWheelAsync(
+            ("Mug", WheelItemKind.Prize, 5000, 0), // sold out
+            ("Better luck", WheelItemKind.Lose, 2500, null),
+            ("Try Again", WheelItemKind.TryAgain, 2500, null));
+        var id = await Host.CreateCustomerAsync(credits: 1);
+
+        var outcome = await Host.SpinAsync(id);
+
+        Assert.Equal(SpinFailure.WheelUnavailable, outcome.Failure);
+        Assert.Equal(1, (await Host.CustomerAsync(id)).SpinCredits);
+    }
+
+    [Fact]
     public async Task New_customer_gets_one_initial_credit_with_a_ledger_entry()
     {
         var id = await Host.CreateCustomerAsync();

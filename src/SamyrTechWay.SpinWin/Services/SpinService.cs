@@ -148,6 +148,12 @@ public sealed class SpinService(
 
                 var item = items.Single(i => i.Id == pick.Item.Id);
                 var isRetry = item.Kind == WheelItemKind.TryAgain;
+                var resultKind = item.Kind switch
+                {
+                    WheelItemKind.TryAgain => SpinResultKind.TryAgain,
+                    WheelItemKind.Lose => SpinResultKind.Lost,
+                    _ => SpinResultKind.Won,
+                };
 
                 var attempt = new SpinAttempt
                 {
@@ -155,7 +161,7 @@ public sealed class SpinService(
                     CustomerId = customerId,
                     WheelItemId = item.Id,
                     RequestId = requestId,
-                    Kind = isRetry ? SpinResultKind.TryAgain : SpinResultKind.Won,
+                    Kind = resultKind,
                     ItemNameEn = item.NameEn,
                     ItemNameAr = item.NameAr,
                     ItemKind = item.Kind,
@@ -198,9 +204,9 @@ public sealed class SpinService(
                         CreatedAtUtc = now,
                     });
                 }
-                else
+                else if (resultKind == SpinResultKind.Won)
                 {
-                    // 4b. Real prize: pending award with an immutable snapshot.
+                    // 4b. Real prize: pending award with an immutable snapshot. (4c. "Better luck": the credit stays spent.)
                     award = new Award
                     {
                         SpinAttemptId = attempt.Id,

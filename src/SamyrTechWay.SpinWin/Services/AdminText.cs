@@ -43,9 +43,19 @@ public static class AdminText
         _ => tier.ToString(),
     };
 
-    public static string Kind(WheelItemKind kind) => kind == WheelItemKind.TryAgain ? "حاول مرة أخرى" : "جائزة";
+    public static string Kind(WheelItemKind kind) => kind switch
+    {
+        WheelItemKind.TryAgain => "حاول مرة أخرى",
+        WheelItemKind.Lose => "حظ أوفر",
+        _ => "جائزة",
+    };
 
-    public static string Result(SpinResultKind kind) => kind == SpinResultKind.Won ? "فوز" : "حاول مرة أخرى";
+    public static string Result(SpinResultKind kind) => kind switch
+    {
+        SpinResultKind.Won => "فوز",
+        SpinResultKind.Lost => "حظ أوفر",
+        _ => "حاول مرة أخرى",
+    };
 
     public static string Status(AwardStatus status) => status == AwardStatus.Delivered ? "تم التسليم" : "في انتظار التسليم";
 

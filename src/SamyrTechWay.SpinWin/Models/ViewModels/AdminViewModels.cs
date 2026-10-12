@@ -50,6 +50,7 @@ public sealed class DashboardViewModel
     public int ConsumedCredits { get; init; }
     public int TotalAttempts { get; init; }
     public int TryAgainAttempts { get; init; }
+    public int LostAttempts { get; init; }
     public int RealWins { get; init; }
     public int PendingAwards { get; init; }
     public int DeliveredAwards { get; init; }

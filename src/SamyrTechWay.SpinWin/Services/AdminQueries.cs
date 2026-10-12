@@ -33,9 +33,10 @@ public sealed class AdminQueries(AppDbContext db, SettingsService settings, Time
             ActiveCustomers = await db.Customers.CountAsync(c => c.IsActive, ct),
             CustomersWithCredits = await db.Customers.CountAsync(c => c.IsActive && c.SpinCredits > 0, ct),
             AvailableCredits = await db.Customers.Where(c => c.IsActive).SumAsync(c => (int?)c.SpinCredits, ct) ?? 0,
-            ConsumedCredits = await db.SpinAttempts.CountAsync(a => a.Kind == SpinResultKind.Won, ct),
+            ConsumedCredits = await db.SpinAttempts.CountAsync(a => a.Kind != SpinResultKind.TryAgain, ct),
             TotalAttempts = await db.SpinAttempts.CountAsync(ct),
             TryAgainAttempts = await db.SpinAttempts.CountAsync(a => a.Kind == SpinResultKind.TryAgain, ct),
+            LostAttempts = await db.SpinAttempts.CountAsync(a => a.Kind == SpinResultKind.Lost, ct),
             RealWins = await db.Awards.CountAsync(ct),
             PendingAwards = await db.Awards.CountAsync(a => a.Status == AwardStatus.Pending, ct),
             DeliveredAwards = await db.Awards.CountAsync(a => a.Status == AwardStatus.Delivered, ct),
@@ -172,6 +173,7 @@ public sealed class AdminQueries(AppDbContext db, SettingsService settings, Time
         {
             "won" => q.Where(a => a.Kind == SpinResultKind.Won),
             "tryagain" => q.Where(a => a.Kind == SpinResultKind.TryAgain),
+            "lost" => q.Where(a => a.Kind == SpinResultKind.Lost),
             _ => q,
         };
         if (f.From is { } from) { var start = CairoTime.CairoDateToUtc(from); q = q.Where(a => a.CreatedAtUtc >= start); }

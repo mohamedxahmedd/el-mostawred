@@ -32,6 +32,8 @@ public static class PrizeIcons
         ("star", "نجمة"),
         ("medal", "ميدالية"),
         ("sparkles", "لمعان"),
+        ("smile", "وش مبتسم (حظ أوفر)"),
+        ("coins", "عملات (كاش باك)"),
         ("retry", "حاول مرة أخرى"),
     ];
 

@@ -7,7 +7,7 @@
 <div class="page-actions"><a class="btn btn-ghost btn-sm" href="/admin/spins"><partial name="_Icon" model="@("arrow-right")" /> كل اللفّات</a></div>
 <div class="grid-2-even">
     <section class="card">
-        <div class="card-head"><h2>النتيجة</h2><span class="badge @(a.Kind == SpinResultKind.Won ? "badge-flame" : "badge-muted")">@(a.Kind == SpinResultKind.Won ? "فوز بجائزة" : AdminText.Result(a.Kind) + " (تم استرداد اللفّة)")</span></div>
+        <div class="card-head"><h2>النتيجة</h2><span class="badge @(a.Kind == SpinResultKind.Won ? "badge-flame" : "badge-muted")">@(a.Kind switch { SpinResultKind.Won => "فوز بجائزة", SpinResultKind.Lost => "حظ أوفر (خُصمت اللفّة بدون جائزة)", _ => AdminText.Result(a.Kind) + " (تم استرداد اللفّة)" })</span></div>
         <dl class="dl">
             <dt>الوقت (توقيت القاهرة)</dt><dd>@AdminText.Date(a.CreatedAtUtc, "dddd d MMM yyyy، HH:mm:ss")</dd>
             <dt>الوقت (UTC)</dt><dd class="mono"><bdi dir="ltr">@a.CreatedAtUtc.ToString("u")</bdi></dd>
@@ -42,7 +42,7 @@
         }
         else
         {
-            <p class="empty">نتيجة «حاول مرة أخرى» لا تُنشئ جائزة مكتسبة. تم استرداد لفّة العميل في نفس العملية.</p>
+            <p class="empty">@(a.Kind == SpinResultKind.Lost ? "نتيجة «حظ أوفر» لا تُنشئ جائزة مكتسبة، وتُخصم اللفّة." : "نتيجة «حاول مرة أخرى» لا تُنشئ جائزة مكتسبة. تم استرداد لفّة العميل في نفس العملية.")</p>
         }
     </section>
 </div>

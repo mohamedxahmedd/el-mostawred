@@ -13,7 +13,7 @@ public sealed record WheelItemSnapshot(
     int DisplayOrder)
 {
     public bool IsLive => IsActive && !IsArchived;
-    public bool InStock => Kind == WheelItemKind.TryAgain || StockQuantity is null || StockQuantity > 0;
+    public bool InStock => Kind != WheelItemKind.Prize || StockQuantity is null || StockQuantity > 0;
 }
 
 public sealed record EffectiveOdd(WheelItemSnapshot Item, int Weight, int RangeStart)
@@ -30,8 +30,8 @@ public enum WheelStatus
 
 /// <summary>
 /// Pure odds maths. Configured weights are basis points and must total exactly 10,000 across live items.
-/// Effective odds renormalise the eligible items (live, weight > 0, in stock). Try Again is eligible only
-/// while at least one real prize is eligible.
+/// Effective odds renormalise the eligible items (live, weight > 0, in stock). Try Again and "better luck" (Lose)
+/// are eligible only while at least one real prize is eligible.
 /// </summary>
 public sealed class WheelOdds
 {

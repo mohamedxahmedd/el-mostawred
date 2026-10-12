@@ -13,6 +13,7 @@
             <option value="all" selected="@(f.Kind is null or "all")">الكل</option>
             <option value="won" selected="@(f.Kind == "won")">@AdminText.Result(SpinResultKind.Won)</option>
             <option value="tryagain" selected="@(f.Kind == "tryagain")">@AdminText.Result(SpinResultKind.TryAgain)</option>
+            <option value="lost" selected="@(f.Kind == "lost")">@AdminText.Result(SpinResultKind.Lost)</option>
         </select>
     </div>
     <div class="field"><label class="label" for="from">من</label><input class="input" id="from" name="From" type="date" value="@f.From?.ToString("yyyy-MM-dd")" /></div>

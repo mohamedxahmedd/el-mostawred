@@ -145,6 +145,10 @@ public sealed class Localizer
         ["result.retry.title"] = ("ONE MORE SPIN", "لفّة كمان"),
         ["result.retry.body"] = ("No prize yet — your spin came straight back to you. Spin again!", "لسه مفيش جايزة — لفّتك رجعتلك تاني. لِف كمان!"),
         ["result.retry.cta"] = ("SPIN AGAIN", "لِف تاني"),
+        ["result.lost.kicker"] = ("BETTER LUCK", "حظ أوفر"),
+        ["result.lost.title"] = ("Next time!", "المرة الجاية!"),
+        ["result.lost.body"] = ("No prize on this spin. Thank you for shopping with us!", "المرة دي مفيش جايزة. شكرًا إنك اشتريت مننا!"),
+        ["play.legend.lose"] = ("No prize this time", "مفيش جايزة المرة دي"),
         ["result.credits.left"] = ("Spins left: {0}", "لفّات باقية: {0}"),
 
         ["prizes.title"] = ("My prizes", "جوايزي"),

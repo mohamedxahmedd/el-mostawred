@@ -13,7 +13,12 @@ public sealed class PrizesController(AdminQueries queries, WheelItemAdminService
 
     [HttpGet("create")]
     public IActionResult Create(WheelItemKind kind = WheelItemKind.Prize) =>
-        View("Edit", new WheelItemForm { Kind = kind, IconKey = kind == WheelItemKind.TryAgain ? "retry" : "gift", ColorKey = kind == WheelItemKind.TryAgain ? "gold" : "ruby" });
+        View("Edit", new WheelItemForm
+        {
+            Kind = kind,
+            IconKey = kind switch { WheelItemKind.TryAgain => "retry", WheelItemKind.Lose => "smile", _ => "gift" },
+            ColorKey = kind == WheelItemKind.Prize ? "ruby" : "onyx",
+        });
 
     [HttpPost("create")]
     public async Task<IActionResult> Create(WheelItemForm form, CancellationToken ct)

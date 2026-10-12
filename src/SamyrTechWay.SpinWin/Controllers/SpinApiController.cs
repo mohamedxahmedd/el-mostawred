@@ -69,7 +69,7 @@ public sealed class SpinApiController(SpinService spins, CustomerQueries custome
             award = new SpinAwardDto(aw.Id, aw.Status.ToString(), card.Pickup);
         }
         var layout = outcome.DrawLayout is { Count: > 0 } ids ? await customers.LayoutAsync(ids, t, ct) : null;
-        return new SpinResponse(a.Id, a.RequestId, outcome.Replayed, a.Kind == Models.Entities.SpinResultKind.Won ? "won" : "tryAgain",
+        return new SpinResponse(a.Id, a.RequestId, outcome.Replayed, a.Kind switch { Models.Entities.SpinResultKind.Won => "won", Models.Entities.SpinResultKind.Lost => "lost", _ => "tryAgain" },
             a.WheelItemId, WheelPresenter.Prize(a, t), outcome.Credits, award, layout, t.Date(a.CreatedAtUtc));
     }
 

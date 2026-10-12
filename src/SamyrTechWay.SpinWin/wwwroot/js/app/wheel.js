@@ -2,6 +2,7 @@
 // The server decides the item; this only animates to it. Stop math lives in wheel-math.js (unit tested).
 import { layoutSegments, targetRotation, segmentIndexAt, motionPlan, turnsFor } from './wheel-math.js';
 import { PRIZE_ICONS } from './icons.js';
+import { PRIZE_ART } from './prize-art.js';
 
 export const WEDGE_COLORS = {
   ruby: { stops: ['#2e0003', '#6e0208', '#a80710', '#d01518'], text: '#fff7ed', stroke: 'rgba(60,0,0,.55)' },
@@ -14,9 +15,44 @@ export const WEDGE_COLORS = {
 
 const R_DISC = 446;
 const R_HUB = 122;
+const R_BURST = 330; // centre of the sunburst on gold wedges, where their text sits
+const WEDGE_STYLE = { gold: 'sun', amber: 'sun', onyx: 'night' };
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const rad = d => (d * Math.PI) / 180;
 const pt = (r, deg) => [r * Math.sin(rad(deg)), -r * Math.cos(rad(deg))];
+const xy = ([x, y]) => `${x.toFixed(2)} ${y.toFixed(2)}`;
+
+/** A wedge pointing straight up, `half` degrees either side of 12 o'clock. */
+const wedgePath = half => `M0 0L${xy(pt(R_DISC + 2, -half))}A${R_DISC + 2} ${R_DISC + 2} 0 ${half > 90 ? 1 : 0} 1 ${xy(pt(R_DISC + 2, half))}Z`;
+
+/** Light rays bursting from behind the text of a gold wedge. */
+const sunRays = () => Array.from({ length: 18 }, (_, i) => {
+  const a = i * 20;
+  const [x1, y1] = pt(620, a - 4.5);
+  const [x2, y2] = pt(620, a + 4.5);
+  return `<path d="M0 ${-R_BURST}L${(x1).toFixed(1)} ${(y1 - R_BURST).toFixed(1)}L${(x2).toFixed(1)} ${(y2 - R_BURST).toFixed(1)}Z" fill="rgba(255,255,255,.16)"/>`;
+}).join('');
+
+/** Faint circuit-board traces on black wedges, echoing the store's branding. */
+const circuitTraces = half => {
+  const w = Math.sin(rad(Math.min(half, 60)));
+  return [-1, 1].map(side => {
+    const x = side * w * 300;
+    return `<path d="M${(x * 1.3).toFixed(1)} -430V-390L${(x * 0.8).toFixed(1)} -340V-300" fill="none" stroke="rgba(255,140,30,.2)" stroke-width="3"/>
+      <circle cx="${(x * 0.8).toFixed(1)}" cy="-296" r="5" fill="none" stroke="rgba(255,140,30,.25)" stroke-width="2.5"/>`;
+  }).join('');
+};
+
+/** One line, or two balanced lines split at a space when the name is long ("خصم 200 ج" → "خصم" / "200 ج"). */
+export function splitLabel(name, maxOneLine) {
+  const clean = String(name ?? '').trim().replace(/\s+/g, ' ');
+  const cut = t => (t.length > 16 ? t.slice(0, 15) + '…' : t);
+  if (clean.length <= maxOneLine || !clean.includes(' ')) return [cut(clean)];
+  const mid = clean.length / 2;
+  let best = -1;
+  for (let i = 0; i < clean.length; i++) if (clean[i] === ' ' && (best < 0 || Math.abs(i - mid) < Math.abs(best - mid))) best = i;
+  return [cut(clean.slice(0, best)), cut(clean.slice(best + 1))];
+}
 
 export class Wheel {
   /**
@@ -49,121 +85,128 @@ export class Wheel {
     this.els.disc.style.transform = `rotate(${r}deg)`;
   }
 
+  /**
+   * Booth style (matches the printed store wheel): gold/amber items are yellow sunburst wedges with big dark text,
+   * onyx items are black wedges with white text and a picture, ruby/flame/ember keep their own colour.
+   * Each wedge is drawn upright in its own rotated group, so gradients and rays are shared.
+   */
   renderDisc() {
     const p = this.prefix;
     const defs = [];
     const wedges = [];
     const seps = [];
     const labels = [];
+    this.artUsed = new Set();
 
+    defs.push(`<radialGradient id="${p}-sun" cx="0" cy="${-R_BURST}" r="330" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff58a"/><stop offset=".3" stop-color="#ffd526"/><stop offset=".72" stop-color="#ffa400"/><stop offset="1" stop-color="#ef7300"/></radialGradient>`);
+    defs.push(`<radialGradient id="${p}-night" cx="0" cy="0" r="${R_DISC}" gradientUnits="userSpaceOnUse">
+      <stop offset=".25" stop-color="#040305"/><stop offset=".75" stop-color="#141015"/><stop offset="1" stop-color="#231b21"/></radialGradient>`);
     Object.entries(WEDGE_COLORS).forEach(([key, c]) => {
       defs.push(`<radialGradient id="${p}-g-${key}" cx="0" cy="0" r="${R_DISC}" gradientUnits="userSpaceOnUse">
         <stop offset="0.18" stop-color="${c.stops[0]}"/><stop offset="0.5" stop-color="${c.stops[1]}"/>
         <stop offset="0.86" stop-color="${c.stops[2]}"/><stop offset="1" stop-color="${c.stops[3]}"/></radialGradient>`);
     });
-    defs.push(`<linearGradient id="${p}-sep" x1="0" y1="0" x2="0" y2="-1" gradientUnits="objectBoundingBox">
-      <stop offset="0" stop-color="#8a540a"/><stop offset=".5" stop-color="#ffe08a"/><stop offset="1" stop-color="#fff4cf"/></linearGradient>`);
-    defs.push(`<radialGradient id="${p}-hub" cx="0" cy="-30" r="150" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#3b2a1a"/><stop offset="1" stop-color="#0d0a0c"/></radialGradient>`);
-    defs.push(`<linearGradient id="${p}-hubring" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#fff1c2"/><stop offset=".45" stop-color="#d9930f"/><stop offset="1" stop-color="#6b3f04"/></linearGradient>`);
 
     this.segments.forEach((s, k) => {
       const item = this.items[k];
       const color = WEDGE_COLORS[item.color] ? item.color : 'ruby';
-      const c = WEDGE_COLORS[color];
-      if (s.span >= 359.999) {
-        wedges.push(`<circle r="${R_DISC}" fill="url(#${p}-g-${color})"/>`);
-      } else {
-        const [x1, y1] = pt(R_DISC, s.start);
-        const [x2, y2] = pt(R_DISC, s.end);
-        wedges.push(`<path d="M0 0L${x1.toFixed(2)} ${y1.toFixed(2)}A${R_DISC} ${R_DISC} 0 ${s.span > 180 ? 1 : 0} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}Z" fill="url(#${p}-g-${color})"/>`);
+      const style = WEDGE_STYLE[color] ?? 'color';
+      const half = s.span / 2;
+      const shape = s.span >= 359.999 ? `<circle r="${R_DISC}"/>` : `<path d="${wedgePath(half)}"/>`;
+      const fill = style === 'sun' ? `url(#${p}-sun)` : style === 'night' ? `url(#${p}-night)` : `url(#${p}-g-${color})`;
+      defs.push(`<clipPath id="${p}-w${k}">${shape}</clipPath>`);
+      wedges.push(`<g transform="rotate(${s.mid.toFixed(3)})"><g clip-path="url(#${p}-w${k})">
+        <rect x="-${R_DISC}" y="-${R_DISC}" width="${R_DISC * 2}" height="${R_DISC * 2}" fill="${fill}"/>
+        ${style === 'sun' ? sunRays() : style === 'night' ? circuitTraces(half) : ''}</g></g>`);
+      if (s.span < 359.999) {
         const [sx, sy] = pt(R_DISC, s.start);
-        const [ix, iy] = pt(R_HUB - 8, s.start);
+        const [ix, iy] = pt(R_HUB, s.start);
         seps.push(`<line x1="${ix.toFixed(2)}" y1="${iy.toFixed(2)}" x2="${sx.toFixed(2)}" y2="${sy.toFixed(2)}"/>`);
       }
-      labels.push(this.label(s, item, c, k));
+      labels.push(this.label(s, item, style, WEDGE_COLORS[color], k));
     });
-
-    // Decorative hub studs (rotate with the disc).
-    const studs = Array.from({ length: 12 }, (_, i) => {
-      const [x, y] = pt(R_HUB + 2, i * 30);
-      return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="5" fill="#ffe08a" stroke="#6b3f04" stroke-width="1.5"/>`;
-    }).join('');
+    this.artUsed.forEach(key => defs.push(PRIZE_ART[key].defs.replaceAll('ID-', `${p}-a-`)));
 
     this.els.disc.innerHTML = `<svg viewBox="-500 -500 1000 1000" role="presentation">
       <defs>${defs.join('')}</defs>
-      <circle r="${R_DISC + 4}" fill="#120a0a"/>
+      <circle r="${R_DISC + 4}" fill="#050405"/>
       <g>${wedges.join('')}</g>
-      <circle r="${R_DISC}" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="60" />
-      <g stroke="url(#${p}-sep)" stroke-width="4" stroke-linecap="round">${seps.join('')}</g>
+      <g stroke="#050405" stroke-width="6" stroke-linecap="round">${seps.join('')}</g>
       <g>${labels.join('')}</g>
-      <circle r="${R_HUB + 18}" fill="url(#${p}-hub)" stroke="url(#${p}-hubring)" stroke-width="10"/>
-      ${studs}
+      <circle r="${R_HUB + 16}" fill="#070608" stroke="#ff8a00" stroke-width="7"/>
+      <circle r="${R_HUB + 4}" fill="none" stroke="rgba(255,170,60,.35)" stroke-width="2"/>
     </svg>`;
   }
 
-  label(s, item, c, k) {
-    const arcAt = r => (r * rad(s.span));
-    const iconR = 352;
-    const iconSize = Math.max(0, Math.min(84, arcAt(iconR) * 0.6));
+  label(s, item, style, c, k) {
     if (s.span < 3) return '';
+    const half = Math.min(s.span / 2, 90);
+    const chord = r => 2 * r * Math.sin(rad(half)); // usable width across the wedge at radius r
+    const sun = style === 'sun';
+    const ink = sun ? '#1c1004' : style === 'night' ? '#ffffff' : c.text;
+    const halo = sun ? 'rgba(255,245,200,.45)' : 'rgba(0,0,0,.7)';
 
+    const lines = splitLabel(item.name, sun ? 6 : 10);
+    const longest = Math.max(3, ...lines.map(l => l.length));
+    const rim = sun ? 402 : 412;
+    const fitAt = r => (chord(r) * 0.86) / (longest * 0.5);
+    let fs = Math.min(sun ? 66 : 48, fitAt(rim - (lines.length > 1 ? 120 : 60)));
+    const radii = lines.map((_, i) => rim - fs * 0.6 - i * fs * 1.08);
+    fs = Math.min(fs, fitAt(radii[radii.length - 1] - fs * 0.3));
+    const rtl = /[\u0600-\u06FF]/.test(item.name) ? ' direction="rtl" unicode-bidi="embed"' : '';
+
+    let text = '';
+    if (fs >= 13) {
+      text = lines.map((line, i) => `<text class="wheel-seg-label" x="0" y="${(-radii[i]).toFixed(1)}" text-anchor="middle" dominant-baseline="central"${rtl}
+        font-size="${fs.toFixed(1)}" font-weight="${sun ? 900 : 800}" fill="${ink}" stroke="${halo}" stroke-width="${(fs * (sun ? 0.05 : 0.12)).toFixed(1)}">${esc(line)}</text>`).join('');
+    }
+
+    // Gold wedges are text only, like the printed wheel; the others carry the prize photo or icon under the text.
     let icon = '';
-    if (iconSize >= 18) {
+    const textInner = radii[radii.length - 1] - fs * 0.7;
+    const iconR = Math.max(R_HUB + 70, Math.min(258, textInner - 76));
+    const art = !item.imageUrl ? PRIZE_ART[item.icon] : null;
+    const iconSize = Math.min(art ? 170 : 118, chord(iconR) * (art ? 1.15 : 0.72), (textInner - R_HUB - 22) * (art ? 1.15 : 0.9));
+    if (!sun && iconSize >= 18) {
       if (item.imageUrl) {
-        const rr = iconSize / 2 + 4;
+        const rr = iconSize / 2;
         icon = `<clipPath id="${this.prefix}-clip-${k}"><circle cy="${-iconR}" r="${rr}"/></clipPath>
-          <circle cy="${-iconR}" r="${rr + 5}" fill="#1a0b0e" stroke="#ffe08a" stroke-width="4"/>
+          <circle cy="${-iconR}" r="${rr + 4}" fill="#0b090c" stroke="#ff8a00" stroke-width="3"/>
           <image href="${esc(item.imageUrl)}" x="${-rr}" y="${-iconR - rr}" width="${rr * 2}" height="${rr * 2}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${this.prefix}-clip-${k})"/>`;
+      } else if (art) {
+        this.artUsed.add(item.icon);
+        const sc = iconSize / 200;
+        icon = `<g transform="translate(${(-iconSize / 2).toFixed(1)} ${(-iconR - iconSize / 2).toFixed(1)}) scale(${sc.toFixed(4)})">${art.body.replaceAll('ID-', `${this.prefix}-a-`)}</g>`;
       } else {
         const path = PRIZE_ICONS[item.icon] ?? PRIZE_ICONS.gift;
         const sc = iconSize / 24;
-        icon = `<g transform="translate(0 ${-iconR}) scale(${sc.toFixed(3)}) translate(-12 -12)" fill="none" stroke="${c.text}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="${path}" stroke="${c.stroke}" stroke-width="4.5"/><path d="${path}"/></g>`;
+        icon = `<g transform="translate(0 ${-iconR}) scale(${sc.toFixed(3)}) translate(-12 -12)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <path d="${path}" stroke="rgba(0,0,0,.65)" stroke-width="4.5"/><path d="${path}" stroke="#ffae1f" stroke-width="2.2"/></g>`;
       }
     }
-
-    let text = '';
-    if (s.span >= 15) {
-      const name = item.name.length > 18 ? item.name.slice(0, 17) + '…' : item.name;
-      const room = 380 - (iconSize ? iconSize / 2 + 26 : 0) - (R_HUB + 34); // radial space for text
-      const fs = Math.min(36, room / Math.max(4, name.length * 0.56), arcAt(250) * 0.5);
-      if (fs >= 17) {
-        const r = R_HUB + 34 + room / 2;
-        // Keep labels upright: wedges on the left half read the other way round.
-        const turn = s.mid > 180 ? 90 : -90;
-        text = `<text class="wheel-seg-label" x="0" y="0" transform="translate(0 ${-r}) rotate(${turn})" text-anchor="middle" dominant-baseline="central"
-          font-size="${fs.toFixed(1)}" fill="${c.text}" stroke="${c.stroke}" stroke-width="${(fs * 0.14).toFixed(1)}">${esc(name)}</text>`;
-      }
-    }
-    return `<g transform="rotate(${s.mid.toFixed(3)})">${icon}${text}</g>`;
+    return `<g transform="rotate(${s.mid.toFixed(3)})">${text}${icon}</g>`;
   }
 
   renderFrame() {
     const p = this.prefix;
-    const bulbs = 28;
+    const bulbs = 32;
     const leds = Array.from({ length: bulbs }, (_, i) => {
-      const [x, y] = pt(468, (360 / bulbs) * i + 360 / bulbs / 2);
-      return `<g class="led ${i % 2 ? 'led-b' : 'led-a'}"><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="17" fill="url(#${p}-ledglow)"/>
-        <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="7.5" fill="url(#${p}-led)" stroke="#7a4a05" stroke-width="1.5"/></g>`;
+      const [x, y] = pt(469, (360 / bulbs) * i + 360 / bulbs / 2);
+      return `<g class="led ${i % 2 ? 'led-b' : 'led-a'}"><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="15" fill="url(#${p}-ledglow)"/>
+        <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="6.5" fill="url(#${p}-led)"/></g>`;
     }).join('');
     this.els.frame.innerHTML = `
       <defs>
-        <linearGradient id="${p}-ring" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stop-color="#fff4cf"/><stop offset=".18" stop-color="#e2a12a"/><stop offset=".38" stop-color="#7d4806"/>
-          <stop offset=".55" stop-color="#ffd57a"/><stop offset=".72" stop-color="#a8650a"/><stop offset=".9" stop-color="#ffe9a8"/><stop offset="1" stop-color="#8a540a"/>
-        </linearGradient>
-        <radialGradient id="${p}-led" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#ffffff"/><stop offset=".45" stop-color="#fff0b0"/><stop offset="1" stop-color="#ff9d2e"/></radialGradient>
-        <radialGradient id="${p}-ledglow"><stop offset="0" stop-color="rgba(255,214,120,.75)"/><stop offset="1" stop-color="rgba(255,140,40,0)"/></radialGradient>
-        <radialGradient id="${p}-gloss" cx="-.15" cy="-.55" r="1.1"><stop offset="0" stop-color="rgba(255,255,255,.16)"/><stop offset=".5" stop-color="rgba(255,255,255,.03)"/><stop offset="1" stop-color="rgba(255,255,255,0)"/></radialGradient>
+        <radialGradient id="${p}-led" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#fffbe0"/><stop offset=".45" stop-color="#ffd24a"/><stop offset="1" stop-color="#ff8a00"/></radialGradient>
+        <radialGradient id="${p}-ledglow"><stop offset="0" stop-color="rgba(255,190,60,.8)"/><stop offset="1" stop-color="rgba(255,120,0,0)"/></radialGradient>
+        <radialGradient id="${p}-gloss" cx="-.15" cy="-.55" r="1.1"><stop offset="0" stop-color="rgba(255,255,255,.12)"/><stop offset=".5" stop-color="rgba(255,255,255,.02)"/><stop offset="1" stop-color="rgba(255,255,255,0)"/></radialGradient>
       </defs>
-      <circle r="${R_DISC}" fill="none" stroke="rgba(0,0,0,.55)" stroke-width="14"/>
       <circle r="${R_DISC - 2}" fill="url(#${p}-gloss)"/>
-      <circle r="468" fill="none" stroke="#1b0e06" stroke-width="48"/>
-      <circle r="468" fill="none" stroke="url(#${p}-ring)" stroke-width="40"/>
-      <circle r="449" fill="none" stroke="#4a2a04" stroke-width="3"/>
-      <circle r="489" fill="none" stroke="rgba(255,240,200,.65)" stroke-width="2.5"/>
+      <circle r="469" fill="none" stroke="#060506" stroke-width="46"/>
+      <circle r="448" fill="none" stroke="#ff8a00" stroke-width="5"/>
+      <circle r="451" fill="none" stroke="rgba(255,138,0,.35)" stroke-width="12"/>
+      <circle r="491" fill="none" stroke="#1d1410" stroke-width="4"/>
       ${leds}`;
   }
 

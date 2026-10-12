@@ -20,9 +20,14 @@ public static class WheelPresenter
     public static string? ImageUrl(Guid? imageId) => imageId is { } id ? $"/media/prize/{id:N}" : null;
 
     public static string Icon(string? iconKey, WheelItemKind kind) =>
-        PrizeIcons.IsValid(iconKey) ? iconKey! : kind == WheelItemKind.TryAgain ? "retry" : "gift";
+        PrizeIcons.IsValid(iconKey) ? iconKey! : kind switch { WheelItemKind.TryAgain => "retry", WheelItemKind.Lose => "smile", _ => "gift" };
 
-    public static string KindKey(WheelItemKind kind) => kind == WheelItemKind.TryAgain ? "tryAgain" : "prize";
+    public static string KindKey(WheelItemKind kind) => kind switch
+    {
+        WheelItemKind.TryAgain => "tryAgain",
+        WheelItemKind.Lose => "lose",
+        _ => "prize",
+    };
 
     public static IReadOnlyList<WheelItemDto> Items(IEnumerable<WheelItem> items, WheelOdds odds, Localizer t)
     {
@@ -34,9 +39,12 @@ public static class WheelPresenter
     public static IReadOnlyList<WheelItemDto> Items(IReadOnlyList<WheelItem> ordered, Localizer t) =>
         ordered.Select(item =>
         {
-            var description = item.Kind == WheelItemKind.TryAgain
-                ? t["play.legend.retry"]
-                : t.Pick(item.DescriptionEn ?? "", item.DescriptionAr);
+            var description = item.Kind switch
+            {
+                WheelItemKind.TryAgain => t["play.legend.retry"],
+                WheelItemKind.Lose when string.IsNullOrWhiteSpace(item.DescriptionEn) && string.IsNullOrWhiteSpace(item.DescriptionAr) => t["play.legend.lose"],
+                _ => t.Pick(item.DescriptionEn ?? "", item.DescriptionAr),
+            };
             return new WheelItemDto(
                 item.Id,
                 t.Pick(item.NameEn, item.NameAr),

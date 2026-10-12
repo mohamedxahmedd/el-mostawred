@@ -3,6 +3,7 @@
 // recovers the committed result (GET lookup / same-key replay) instead of ever spinning twice.
 import { $, api, uuid, store, readJson, toast, vibrate, prefersReducedMotion } from './util.js';
 import { Wheel, WEDGE_COLORS } from './wheel.js';
+import { artSvg } from './prize-art.js';
 import { GameAudio } from './audio.js';
 import { Celebration } from './fx.js';
 import { ShareDialog } from './share.js';
@@ -107,7 +108,7 @@ function renderLegend(items) {
       img.src = item.imageUrl; img.alt = ''; img.loading = 'lazy';
       icon.append(img);
     } else {
-      icon.innerHTML = `<svg class="icon" aria-hidden="true"><use href="/assets/icons/ui.svg#p-${item.icon}"></use></svg>`;
+      icon.innerHTML = artSvg(item.icon, `lg${item.id}`) ?? `<svg class="icon" aria-hidden="true"><use href="/assets/icons/ui.svg#p-${item.icon}"></use></svg>`;
     }
     const name = document.createElement('span');
     name.className = 'legend-name';
@@ -278,15 +279,16 @@ function medalContent(item) {
     img.src = item.imageUrl; img.alt = '';
     R.medal.append(img);
   } else {
-    R.medal.innerHTML = `<svg class="icon"><use href="/assets/icons/ui.svg#p-${item.icon}"></use></svg>`;
+    R.medal.innerHTML = artSvg(item.icon, 'medal') ?? `<svg class="icon"><use href="/assets/icons/ui.svg#p-${item.icon}"></use></svg>`;
   }
 }
 
 function showReveal(result) {
   const won = result.result === 'won';
+  const lost = result.result === 'lost';
   const item = result.item;
   const dlg = els.reveal;
-  dlg.dataset.kind = won ? 'won' : 'tryAgain';
+  dlg.dataset.kind = won ? 'won' : lost ? 'lost' : 'tryAgain';
   dlg.dataset.tier = won ? item.tier : '';
   medalContent(item);
 
@@ -304,6 +306,19 @@ function showReveal(result) {
     R.share.hidden = false;
     R.history.hidden = false;
     els.announcer.textContent = `${t('result.won.kicker')}: ${item.name}`;
+  } else if (lost) {
+    R.tier.replaceChildren();
+    R.kicker.textContent = t('result.lost.kicker');
+    R.title.textContent = t('result.lost.title');
+    R.title.className = 'reveal-title';
+    R.name.textContent = '';
+    R.body.textContent = t('result.lost.body');
+    R.pickup.hidden = true;
+    R.again.hidden = credits <= 0;
+    R.again.innerHTML = `<svg class="icon" aria-hidden="true"><use href="/assets/icons/ui.svg#i-dices"></use></svg> ${t('play.spin')}`;
+    R.share.hidden = true;
+    R.history.hidden = true;
+    els.announcer.textContent = `${t('result.lost.kicker')}. ${t('result.lost.body')}`;
   } else {
     R.tier.replaceChildren();
     R.kicker.textContent = t('result.retry.kicker');
@@ -326,6 +341,7 @@ function showReveal(result) {
     const rect = R.medal.getBoundingClientRect();
     const origin = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
     if (won) { fx.celebrate(item.tier, origin); audio.win(item.tier); vibrate(item.tier === 'Epic' ? [40, 60, 40, 60, 120] : [30, 50, 60]); }
+    else if (lost) { vibrate(20); }
     else { fx.retry(origin); audio.retry(); vibrate(20); }
   });
 

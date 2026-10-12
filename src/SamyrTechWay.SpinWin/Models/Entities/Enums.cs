@@ -4,6 +4,9 @@ public enum WheelItemKind
 {
     Prize = 1,
     TryAgain = 2,
+
+    /// <summary>"حظ أوفر": the spin is used up and nothing is won.</summary>
+    Lose = 3,
 }
 
 public enum CelebrationTier
@@ -17,6 +20,7 @@ public enum SpinResultKind
 {
     Won = 1,
     TryAgain = 2,
+    Lost = 3,
 }
 
 public enum AwardStatus

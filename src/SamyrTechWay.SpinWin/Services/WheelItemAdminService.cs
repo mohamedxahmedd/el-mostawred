@@ -264,7 +264,7 @@ public sealed class WheelItemAdminService(AppDbContext db, AuditService audit, T
 
     private static void Apply(WheelItem item, WheelItemInput input, DateTime now)
     {
-        var retry = input.Kind == WheelItemKind.TryAgain;
+        var retry = input.Kind != WheelItemKind.Prize; // Try Again and "better luck" have no stock, tier or pickup note
         item.NameEn = input.NameEn.Trim();
         item.NameAr = Clean(input.NameAr);
         item.DescriptionEn = Clean(input.DescriptionEn);

@@ -2,7 +2,9 @@
 @{
     var isNew = Model.Id is null;
     var retry = Model.Kind == WheelItemKind.TryAgain;
-    ViewData["Title"] = isNew ? (retry ? "عنصر «حاول مرة أخرى» جديد" : "جائزة جديدة") : $"تعديل {AdminText.Name(Model.NameEn, Model.NameAr)}";
+    var lose = Model.Kind == WheelItemKind.Lose;
+    var noPrize = retry || lose; // no stock, tier or pickup note
+    ViewData["Title"] = isNew ? (retry ? "عنصر «حاول مرة أخرى» جديد" : lose ? "شريحة «حظ أوفر» جديدة" : "جائزة جديدة") : $"تعديل {AdminText.Name(Model.NameEn, Model.NameAr)}";
     ViewData["Section"] = "prizes";
     var action = isNew ? "/admin/prizes/create" : $"/admin/prizes/{Model.Id}/edit";
 }
@@ -13,6 +15,10 @@
     @if (retry)
     {
         <p class="alert alert-info" style="margin-bottom:16px"><partial name="_Icon" model="@("info")" /><span>«حاول مرة أخرى» ليست جائزة. عندما تقف عليها العجلة تُسترد اللفّة المستخدمة في نفس العملية ويستطيع العميل اللفّ مرة أخرى. ليس لها مخزون ولا تُسجَّل كجائزة مكتسبة. يمكن تفعيل عنصر واحد فقط من نوع «حاول مرة أخرى».</span></p>
+    }
+    @if (lose)
+    {
+        <p class="alert alert-info" style="margin-bottom:16px"><partial name="_Icon" model="@("info")" /><span>«حظ أوفر» شريحة خسارة: عندما تقف عليها العجلة تُخصم اللفّة ولا يكسب العميل شيئًا. ليس لها مخزون ولا تُسجَّل كجائزة مكتسبة. لا تعمل العجلة إلا إذا كانت هناك جائزة حقيقية واحدة على الأقل متاحة.</span></p>
     }
     <div class="form-grid">
         <p class="section-title span-2">الاسم والوصف</p>
@@ -27,7 +33,7 @@
             <input class="input" asp-for="WeightPercent" type="number" min="0" max="100" step="0.01" inputmode="decimal" />
             <span class="hint">@(Model.Id is null
                 ? "العناصر الجديدة تبدأ عادةً غير مفعّلة: فعّلها معًا من جدول توزيع النسب، حيث يجب أن يكون مجموع نسب العناصر المفعّلة 100.00%."
-                : Model.Kind == WheelItemKind.Prize
+                : Model.Kind != WheelItemKind.TryAgain
                     ? "مجموع نسب العناصر المفعّلة دائمًا 100.00%: عند تغيير هذه النسبة، يأخذ عنصر «حاول مرة أخرى» الفرق تلقائيًا. لتغيير أكثر من نسبة معًا، استخدم جدول توزيع النسب."
                     : "مجموع نسب العناصر المفعّلة يجب أن يكون 100.00%. لتغيير نسبة «حاول مرة أخرى»، استخدم جدول توزيع النسب في صفحة الجوائز.")</span>
             <span class="field-error" asp-validation-for="WeightPercent"></span>
@@ -37,7 +43,7 @@
             <input class="input" asp-for="DisplayOrder" type="number" min="0" max="999" />
             <span class="field-error" asp-validation-for="DisplayOrder"></span>
         </div>
-        @if (!retry)
+        @if (!noPrize)
         {
             <div class="field">
                 <label class="label" asp-for="StockQuantity"></label>
@@ -94,7 +100,7 @@
                 }
             </div>
         </fieldset>
-        @if (!retry)
+        @if (!noPrize)
         {
             <div class="field">
                 <label class="label" asp-for="Tier"></label>

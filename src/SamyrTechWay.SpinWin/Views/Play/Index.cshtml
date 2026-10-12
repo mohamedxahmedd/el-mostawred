@@ -34,22 +34,18 @@
             <div class="wheel-disc" id="wheel-disc" aria-hidden="true"></div>
             <svg class="wheel-frame" id="wheel-frame" viewBox="-500 -500 1000 1000" aria-hidden="true"></svg>
             <div class="wheel-pointer" id="wheel-pointer" aria-hidden="true">
-                <svg viewBox="0 0 100 130">
+                <svg viewBox="0 0 100 120">
                     <defs>
-                        <linearGradient id="ptr-gold" x1="0" y1="0" x2="1" y2="1">
-                            <stop offset="0" stop-color="#fff4cf" /><stop offset=".35" stop-color="#ffcf66" /><stop offset=".7" stop-color="#d98a12" /><stop offset="1" stop-color="#8a540a" />
+                        <linearGradient id="ptr-red" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0" stop-color="#ff5a3a" /><stop offset=".55" stop-color="#e3201b" /><stop offset="1" stop-color="#b30f0c" />
                         </linearGradient>
-                        <radialGradient id="ptr-gem" cx=".4" cy=".35" r=".7">
-                            <stop offset="0" stop-color="#ffd0b0" /><stop offset=".35" stop-color="#ff5a1f" /><stop offset=".75" stop-color="#b30a0c" /><stop offset="1" stop-color="#4d0205" />
-                        </radialGradient>
                     </defs>
-                    <path d="M50 128 C34 92 10 70 10 44 A40 40 0 0 1 90 44 C90 70 66 92 50 128Z" fill="url(#ptr-gold)" stroke="#5a3204" stroke-width="2.5" />
-                    <path d="M50 116 C38 88 20 70 20 45 A30 30 0 0 1 80 45 C80 70 62 88 50 116Z" fill="none" stroke="rgba(255,250,230,.55)" stroke-width="2" />
-                    <circle cx="50" cy="44" r="17" fill="url(#ptr-gem)" stroke="#fff1c2" stroke-width="3" />
-                    <ellipse cx="44" cy="38" rx="6" ry="4" fill="rgba(255,255,255,.7)" />
+                    <path d="M8 10 H92 L50 112 Z" fill="url(#ptr-red)" stroke="#060506" stroke-width="9" stroke-linejoin="round" />
+                    <path d="M22 18 H62 L44 62 Z" fill="rgba(255,255,255,.18)" />
                 </svg>
             </div>
             <button type="button" class="spin-btn" id="spin-btn" aria-label="@T["play.spin.aria"]" @(Model.Status != PlayStatus.Ready ? "disabled" : "")>
+                <img class="spin-logo" src="~/assets/brand/derived/logo-180.png" alt="" width="90" height="90" />
                 <span class="spin-label">@T["play.spin"]</span>
                 <small class="spin-sub">@T["play.spin.sub"]</small>
             </button>
