@@ -10,13 +10,11 @@ public sealed record WheelItemDto(
     string? ImageUrl,
     string Icon,
     string Color,
-    double Probability,
-    string Percent,
     string? Description);
 
 public sealed record PrizeDto(string Name, string Kind, string Tier, string? ImageUrl, string Icon, string Color);
 
-/// <summary>Safe, customer-facing presentation of wheel items. Never includes stock, weights config or customer data.</summary>
+/// <summary>Safe, customer-facing presentation of wheel items. Never includes stock, odds or customer data.</summary>
 public static class WheelPresenter
 {
     public static string? ImageUrl(Guid? imageId) => imageId is { } id ? $"/media/prize/{id:N}" : null;
@@ -29,17 +27,13 @@ public static class WheelPresenter
     public static IReadOnlyList<WheelItemDto> Items(IEnumerable<WheelItem> items, WheelOdds odds, Localizer t)
     {
         var byId = items.ToDictionary(i => i.Id);
-        return Items(odds.Eligible.Select(e => (byId[e.Item.Id], e.Weight)).ToList(), t);
+        return Items(odds.Eligible.Select(e => byId[e.Item.Id]).ToList(), t);
     }
 
-    /// <summary>Items in wheel order with probabilities proportional to their weights within this set.</summary>
-    public static IReadOnlyList<WheelItemDto> Items(IReadOnlyList<(WheelItem Item, int Weight)> set, Localizer t)
-    {
-        var total = set.Sum(s => s.Weight);
-        return set.Select(s =>
+    /// <summary>Items in wheel order. Every slice is drawn the same size, so the odds stay on the server.</summary>
+    public static IReadOnlyList<WheelItemDto> Items(IReadOnlyList<WheelItem> ordered, Localizer t) =>
+        ordered.Select(item =>
         {
-            var item = s.Item;
-            var p = total > 0 ? (double)s.Weight / total : 0;
             var description = item.Kind == WheelItemKind.TryAgain
                 ? t["play.legend.retry"]
                 : t.Pick(item.DescriptionEn ?? "", item.DescriptionAr);
@@ -51,11 +45,8 @@ public static class WheelPresenter
                 ImageUrl(item.ImageId),
                 Icon(item.IconKey, item.Kind),
                 item.ColorKey,
-                p,
-                FormatPercent(p),
                 string.IsNullOrWhiteSpace(description) ? null : description);
         }).ToList();
-    }
 
     public static PrizeDto Prize(SpinAttempt a, Localizer t) => new(
         t.Pick(a.ItemNameEn, a.ItemNameAr), KindKey(a.ItemKind), a.CelebrationTier.ToString(),

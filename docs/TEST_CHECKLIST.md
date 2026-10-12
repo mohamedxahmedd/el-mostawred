@@ -31,7 +31,7 @@ Use Chrome and Safari on desktop, plus a real phone (or DevTools at 390×844), i
 - [ ] Landing shows the original logo, sharp and not stretched. Arabic is right-to-left; the language toggle switches to English and is remembered.
 - [ ] Phone formats `01012345678`, `+20 101 234 5678` and Arabic-Indic digits all sign in; lower-case codes and codes with a dash work.
 - [ ] A wrong code and an unknown phone show the **same** message. After 5 wrong codes the account is locked for 15 minutes.
-- [ ] `/play`: credits show; the wheel slices match the admin allocation; prize photos and icons load; labels are upright on both halves.
+- [ ] `/play`: credits show; every slice is the same size and no percentages appear anywhere (odds are server-only); prize photos and icons load; labels are upright on both halves.
 - [ ] Spin: the button is disabled while spinning, the pointer lands **inside** the winning slice, ticks and sounds play, and the
   sound toggle mutes everything (and is remembered).
 - [ ] **Try Again**: the reveal says the credit is back, credits are unchanged, and spinning again works.

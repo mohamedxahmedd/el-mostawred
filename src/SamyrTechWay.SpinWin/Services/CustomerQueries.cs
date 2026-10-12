@@ -61,8 +61,7 @@ public sealed class CustomerQueries(AppDbContext db, SettingsService settings, S
     public async Task<IReadOnlyList<WheelItemDto>> LayoutAsync(IReadOnlyList<int> ids, Localizer t, CancellationToken ct)
     {
         var items = await db.WheelItems.AsNoTracking().Where(w => ids.Contains(w.Id)).ToListAsync(ct);
-        var ordered = ids.Select(id => items.FirstOrDefault(i => i.Id == id)).OfType<WheelItem>()
-            .Select(i => (i, i.ProbabilityBasisPoints)).ToList();
+        var ordered = ids.Select(id => items.FirstOrDefault(i => i.Id == id)).OfType<WheelItem>().ToList();
         return WheelPresenter.Items(ordered, t);
     }
 

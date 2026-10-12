@@ -117,10 +117,7 @@ function renderLegend(items) {
       small.textContent = item.description;
       name.append(small);
     }
-    const pct = document.createElement('span');
-    pct.className = 'legend-pct';
-    pct.textContent = item.percent;
-    li.append(swatch, icon, name, pct);
+    li.append(swatch, icon, name);
     return li;
   }));
 }

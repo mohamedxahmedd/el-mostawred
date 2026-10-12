@@ -41,7 +41,7 @@ export class Wheel {
   hasItem(id) { return this.segments.some(s => s.id === id); }
 
   sameLayout(items) {
-    return items.length === this.items.length && items.every((it, i) => it.id === this.items[i].id && Math.abs(it.probability - this.items[i].probability) < 1e-9);
+    return items.length === this.items.length && items.every((it, i) => it.id === this.items[i].id);
   }
 
   setRotation(r) {

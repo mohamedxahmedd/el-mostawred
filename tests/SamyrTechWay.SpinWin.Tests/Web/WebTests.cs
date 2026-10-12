@@ -230,6 +230,25 @@ public class WebTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Customers_never_receive_the_odds()
+    {
+        var c = await _factory.CreateCustomerAsync();
+        var client = await SignedInCustomerAsync(c.Phone, c.Code);
+
+        var config = await client.GetStringAsync("/api/wheel/config", Ct);
+        var (_, spin) = await SpinAsync(client, Guid.NewGuid());
+        var play = await client.GetStringAsync("/play", Ct);
+
+        foreach (var body in new[] { config, spin.GetRawText() })
+        {
+            Assert.DoesNotContain("probability", body, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("percent", body, StringComparison.OrdinalIgnoreCase);
+        }
+        Assert.DoesNotContain("legend-pct", play);
+        Assert.Contains("\"name\"", config); // the prize list itself is still sent
+    }
+
+    [Fact]
     public async Task Phone_alone_never_signs_in_and_errors_do_not_reveal_registered_numbers()
     {
         var c = await _factory.CreateCustomerAsync();

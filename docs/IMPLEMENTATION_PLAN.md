@@ -24,7 +24,7 @@ Authoritative spec: `docs/MASTER_BUILD_PROMPT.md`. This plan records the decisio
 | Prize images | Stored in SQL (`PrizeImages`, ≤2 MB, JPEG/PNG/WebP magic-byte check, immutable rows), served same-origin from `/media/prize/{id}`. | Survives Monster Git "Build & publish" redeploys, no filesystem write permissions needed, no path traversal surface, same-origin for canvas export. |
 | Data Protection | Keys persisted to SQL (`DataProtectionKeys`). | Free plan recycles app after idle; cookies must survive restarts. |
 | Front end | Razor + vanilla ES modules, GSAP 3.15.0 (bundled locally), SVG wheel in a rotating container, Web Audio–synthesised sounds (no third-party audio rights), self-hosted Outfit + Cairo variable fonts. No Bootstrap/jQuery. | Spec §2, §5. |
-| Wheel slices | All slices are the **same size** (owner decision, Oct 2026, replacing the spec's proportional wedges). Odds are server-side logic only; the wheel lands inside the server-chosen item's slice, and the "Prizes & odds" legend still shows the real percentages. | Owner request: equal visual slices. |
+| Wheel slices | All slices are the **same size** (owner decision, Oct 2026, replacing the spec's proportional wedges). Odds are server-side logic only; the wheel lands inside the server-chosen item's slice. Customers never see the odds: the "Prizes" list shows names and photos only, and the API sends no probabilities (`WebTests.Customers_never_receive_the_odds`). Admins still see configured and effective odds. | Owner request: equal visual slices, no odds shown to customers. |
 | Localisation | Public site Arabic RTL by default with English toggle (cookie). Admin English. Prize names AR + EN. | Spec §9. |
 | Share image | 1080×1350 PNG drawn on `<canvas>` from same-origin assets; Web Share API with file → download fallback. Only prize name, tier, date and optional first name. | Spec §5D. |
 | HTTPS | `Security:RequireHttps` (default true). When false (Monster Free before HTTPS ticket) the site works over HTTP but shows a "demo only — do not enter real codes" banner. | Spec §8, §13. |
@@ -89,7 +89,7 @@ Admin: `/admin/login`, `POST /admin/logout`, `/admin`, `/admin/customers[/create
 | What | How | Result |
 |---|---|---|
 | Build | `dotnet build -c Release` | 0 warnings, 0 errors |
-| .NET tests (SQLite + HTTP pipeline) | `dotnet test -c Release` | 108 passed, 44 skipped (SQL Server suite; no `SPINWIN_TEST_SQLSERVER`) |
+| .NET tests (SQLite + HTTP pipeline) | `dotnet test -c Release` | 109 passed, 44 skipped (SQL Server suite; no `SPINWIN_TEST_SQLSERVER`) |
 | .NET tests incl. SQL Server | same, with `SPINWIN_TEST_SQLSERVER` → local SQL Server 2022 container | 151 passed, 1 skipped (a SQL-Server-only race test, skipped in its SQLite copy by design) |
 | Wheel maths (JS) | `node --test tests/js/wheel-math.test.mjs` | 16 / 16 passed |
 | Migration | `dotnet ef database update` on local SQL Server 2022; `deploy/sql/migrate-idempotent.sql` applied **twice** to an empty DB | OK, idempotent |
