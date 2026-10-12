@@ -31,6 +31,13 @@ public sealed class TestHost : IAsyncDisposable
     private readonly ServiceProvider _services;
     private readonly Func<Task> _cleanup;
 
+    private TestHost(TestHost other)
+    {
+        _configure = other._configure;
+        _services = other._services;
+        _cleanup = other._cleanup;
+    }
+
     private TestHost(Action<DbContextOptionsBuilder> configure, Func<Task> cleanup)
     {
         _configure = configure;
@@ -39,6 +46,8 @@ public sealed class TestHost : IAsyncDisposable
     }
 
     public TestRandom Random => _services.GetRequiredService<TestRandom>();
+
+    public bool IsSqlServer { get; private init; }
 
     public static async Task<TestHost> SqliteAsync()
     {
@@ -75,6 +84,7 @@ public sealed class TestHost : IAsyncDisposable
             cmd.CommandText = $"IF DB_ID('{dbName}') IS NOT NULL BEGIN ALTER DATABASE [{dbName}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{dbName}]; END";
             await cmd.ExecuteNonQueryAsync();
         });
+        host = new TestHost(host) { IsSqlServer = true };
         await host.WithDbAsync(db => db.Database.MigrateAsync().ContinueWith(_ => true));
         await host.SeedBaselineAsync();
         return host;

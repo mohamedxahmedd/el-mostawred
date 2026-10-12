@@ -21,6 +21,7 @@ public sealed class CustomerAdminService(
 {
     public const int MaxInitialCredits = 20;
     public const int MaxCreditAdjustment = 20;
+    public const string CustomerNotFoundMessage = "Customer not found.";
     public const string DuplicatePhoneMessage = "A customer with this phone number already exists.";
 
     public async Task<ServiceResult<CreatedCustomer>> CreateAsync(CustomerInput input, int initialCredits, AdminActor actor, CancellationToken ct = default)
@@ -163,6 +164,47 @@ public sealed class CustomerAdminService(
             await db.SaveChangesAsync(token);
             return ServiceResult<int>.Success(balance);
         }, ct);
+    }
+
+    /// <summary>
+    /// Removes all of a customer's spin credits (they can't spin until credits are granted again). Ledgered and audited.
+    /// Returns how many credits were removed (0 when the balance was already zero).
+    /// </summary>
+    public async Task<ServiceResult<int>> ClearCreditsAsync(int id, AdminActor actor, CancellationToken ct = default)
+    {
+        // A spin can land between reading the balance and clearing it; the guarded update then misses, so read again.
+        for (var attempt = 0; attempt < 3; attempt++)
+        {
+            var result = await db.InTransactionAsync(async token =>
+            {
+                var current = await db.Customers.Where(c => c.Id == id).Select(c => (int?)c.SpinCredits).FirstOrDefaultAsync(token);
+                if (current is null) return ServiceResult<int>.Fail(CustomerNotFoundMessage);
+                if (current == 0) return ServiceResult<int>.Success(0);
+
+                // Guarded on the balance we read, so the ledger entry always matches what was removed.
+                var updated = await db.Customers
+                    .Where(c => c.Id == id && c.SpinCredits == current)
+                    .ExecuteUpdateAsync(s => s.SetProperty(c => c.SpinCredits, 0), token);
+                if (updated == 0) return null;
+
+                db.CreditLedger.Add(new CreditLedgerEntry
+                {
+                    CustomerId = id,
+                    Delta = -current.Value,
+                    BalanceAfter = 0,
+                    Reason = CreditReason.AdminRevoke,
+                    AdminUserId = actor.Id,
+                    AdminName = actor.Name,
+                    Note = "All spins removed by admin",
+                    CreatedAtUtc = clock.GetUtcNow().UtcDateTime,
+                });
+                audit.Record(actor, "credits.clear", "Customer", id.ToString(), new { removed = current.Value });
+                await db.SaveChangesAsync(token);
+                return ServiceResult<int>.Success(current.Value);
+            }, ct);
+            if (result is not null) return result;
+        }
+        return ServiceResult<int>.Fail("The customer is spinning right now. Wait a moment and try again.");
     }
 
     /// <summary>Issues a new access code, invalidating the old one and any signed-in sessions. Returns the plaintext once.</summary>

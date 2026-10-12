@@ -4,7 +4,7 @@
 
 ```bash
 dotnet test -c Release                                   # SQLite + in-process HTTP pipeline; SQL Server suite shows as skipped
-SPINWIN_TEST_SQLSERVER="<server, no Database=>" dotnet test -c Release   # adds 27 SQL Server tests (creates/drops its own DB)
+SPINWIN_TEST_SQLSERVER="<server, no Database=>" dotnet test -c Release   # runs the SQL Server suite too (creates/drops its own DB)
 node --test tests/js/wheel-math.test.mjs
 ```
 
@@ -51,8 +51,10 @@ Use Chrome and Safari on desktop, plus a real phone (or DevTools at 390×844), i
 - [ ] Dashboard numbers match the database (customers, credits outstanding, spins, wins, pending awards, low stock). The chart has a table view.
 - [ ] Create a customer: the code shows **once**, and copy/print works. A duplicate phone (any format) gives a friendly error.
 - [ ] Grant +3 / revoke −1 credits with a reason: the ledger and audit log update, and credits can't go below zero.
+- [ ] **Set spins to 0**: credits drop to 0 with a ledger entry, and the customer's wheel shows "no spins left".
 - [ ] Reset code: the old code fails, the customer's open session is signed out, and the new code works.
 - [ ] Disable a customer: their session ends and they can't sign in.
+- [ ] Prizes: editing one prize's weight on its edit page saves, and Try Again changes by the difference (shown in the message).
 - [ ] Prizes: allocation ≠ 100 % can't be saved. Effective odds update when stock runs out. Upload a JPEG/PNG/WebP ≤ 2 MB; a fake
   `.png` (e.g. a renamed text file) is rejected. Archiving needs the item to be inactive first.
 - [ ] Two admins editing the same customer or prize: the second save gets a "changed by someone else" message.

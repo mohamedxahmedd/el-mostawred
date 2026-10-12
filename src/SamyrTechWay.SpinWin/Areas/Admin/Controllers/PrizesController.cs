@@ -59,7 +59,9 @@ public sealed class PrizesController(AdminQueries queries, WheelItemAdminService
             AddError(result);
             return View(form);
         }
-        Toast($"“{form.NameEn}” saved.");
+        Toast(result.Value is int retryWeight
+            ? $"“{form.NameEn}” saved. Try Again was adjusted to {WheelItemAdminService.Percent(retryWeight)} to keep the wheel at 100%."
+            : $"“{form.NameEn}” saved.");
         return Redirect("/admin/prizes");
     }
 

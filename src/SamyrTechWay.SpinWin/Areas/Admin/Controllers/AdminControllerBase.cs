@@ -19,6 +19,7 @@ public abstract class AdminControllerBase : Controller
     }
 
     protected void AddError(ServiceResult r) => ModelState.AddModelError(r.Field ?? string.Empty, r.Error ?? "Something went wrong.");
+    protected void AddError<T>(ServiceResult<T> r) => AddError(new ServiceResult(r.Ok, r.Error, r.Field));
 
     protected static byte[]? DecodeRowVersion(string? value)
     {

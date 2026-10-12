@@ -35,3 +35,9 @@ public class SqlServerCustomerLoginTests : CustomerLoginTests
 {
     protected override Task<TestHost> CreateHostAsync() => SqlServerGate.CreateAsync();
 }
+
+[Trait("Category", "SqlServer")]
+public class SqlServerAdminRulesTests : AdminRulesTests
+{
+    protected override Task<TestHost> CreateHostAsync() => SqlServerGate.CreateAsync();
+}

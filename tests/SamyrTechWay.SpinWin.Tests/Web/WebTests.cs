@@ -423,6 +423,77 @@ public class WebTests : IAsyncLifetime
         Assert.DoesNotContain("class=\"sidebar\"", html);
     }
 
+    /// <summary>Collects a page's form fields the way a browser would submit them (inputs, checked boxes/radios, selects, textareas).</summary>
+    private static Dictionary<string, string> FormFields(string html, string formAction)
+    {
+        var form = Regex.Match(html, $"<form[^>]*action=\"{Regex.Escape(formAction)}\"[^>]*>(.*?)</form>", RegexOptions.Singleline).Groups[1].Value;
+        var fields = new Dictionary<string, string>();
+        string Attr(string tag, string name) => System.Net.WebUtility.HtmlDecode(Regex.Match(tag, $"\\s{name}=\"([^\"]*)\"").Groups[1].Value);
+        foreach (Match m in Regex.Matches(form, "<input[^>]*>"))
+        {
+            var tag = m.Value; var name = Attr(tag, "name"); var type = Attr(tag, "type");
+            if (name.Length == 0 || type == "file" || fields.ContainsKey(name)) continue;
+            if (type is "checkbox" or "radio" && !tag.Contains("checked")) continue;
+            fields[name] = Attr(tag, "value");
+        }
+        foreach (Match m in Regex.Matches(form, "<select[^>]*name=\"([^\"]+)\"[^>]*>(.*?)</select>", RegexOptions.Singleline))
+            fields[m.Groups[1].Value] = Regex.Match(m.Groups[2].Value, "<option[^>]*value=\"([^\"]*)\"[^>]*selected").Groups[1].Value;
+        foreach (Match m in Regex.Matches(form, "<textarea[^>]*name=\"([^\"]+)\"[^>]*>(.*?)</textarea>", RegexOptions.Singleline))
+            fields[m.Groups[1].Value] = System.Net.WebUtility.HtmlDecode(m.Groups[2].Value.Trim());
+        return fields;
+    }
+
+    [Fact]
+    public async Task Editing_a_prize_weight_rebalances_try_again_and_a_refused_edit_shows_its_error()
+    {
+        var (email, password) = await CreateAdminAsync();
+        var admin = await SignedInAdminAsync(email, password);
+        var (padId, retryId) = await _factory.WithServicesAsync(async sp =>
+        {
+            var db = sp.GetRequiredService<AppDbContext>();
+            return (await db.WheelItems.Where(w => w.NameEn == "Mouse Pad").Select(w => w.Id).SingleAsync(),
+                    await db.WheelItems.Where(w => w.Kind == WheelItemKind.TryAgain).Select(w => w.Id).SingleAsync());
+        });
+        var editUrl = $"/admin/prizes/{padId}/edit";
+
+        var fields = FormFields(await admin.GetStringAsync(editUrl, Ct), editUrl);
+        fields["WeightPercent"] = "60";
+        var saved = await admin.PostAsync(editUrl, new FormUrlEncodedContent(fields), Ct);
+        Assert.Equal(HttpStatusCode.Redirect, saved.StatusCode);
+        var weights = await _factory.WithServicesAsync(async sp =>
+        {
+            var db = sp.GetRequiredService<AppDbContext>();
+            return (await db.WheelItems.Where(w => w.Id == padId).Select(w => w.ProbabilityBasisPoints).SingleAsync(),
+                    await db.WheelItems.Where(w => w.Id == retryId).Select(w => w.ProbabilityBasisPoints).SingleAsync());
+        });
+        Assert.Equal((6000, 4000), weights);
+
+        fields = FormFields(await admin.GetStringAsync(editUrl, Ct), editUrl);
+        fields["WeightPercent"] = "100"; // Try Again would have to drop to 0%
+        var refused = await admin.PostAsync(editUrl, new FormUrlEncodedContent(fields), Ct);
+        var html = await refused.Content.ReadAsStringAsync(Ct);
+        Assert.Equal(HttpStatusCode.OK, refused.StatusCode);
+        Assert.Contains("can&#x27;t absorb that difference", html);
+    }
+
+    [Fact]
+    public async Task Admin_can_set_a_customers_spins_to_zero()
+    {
+        var c = await _factory.CreateCustomerAsync(credits: 3);
+        var (email, password) = await CreateAdminAsync();
+        var admin = await SignedInAdminAsync(email, password);
+
+        var res = await PostFormAsync(admin, $"/admin/customers/{c.Id}", $"/admin/customers/{c.Id}/credits/clear", new());
+
+        Assert.Equal(HttpStatusCode.Redirect, res.StatusCode);
+        var credits = await _factory.WithServicesAsync(sp => sp.GetRequiredService<AppDbContext>().Customers.Where(x => x.Id == c.Id).Select(x => x.SpinCredits).SingleAsync());
+        Assert.Equal(0, credits);
+        var customer = await SignedInCustomerAsync(c.Phone, c.Code);
+        var (status, body) = await SpinAsync(customer, Guid.NewGuid());
+        Assert.Equal(HttpStatusCode.Conflict, status);
+        Assert.Equal("noCredits", body.GetProperty("error").GetString());
+    }
+
     [Fact]
     public async Task There_is_no_public_registration_route()
     {

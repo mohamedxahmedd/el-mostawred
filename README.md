@@ -101,13 +101,15 @@ does not force HTTPS. If you prefer HTTPS, run `dotnet dev-certs https --trust` 
 1. `/admin/prizes`: set each prize's name (AR + EN), icon or photo (JPEG/PNG/WebP ≤ 2 MB), colour, celebration tier and optional
    stock. The **Try Again** slice is built in.
 2. In the **allocation** table, the active slices must add up to exactly **100 %** before you can save. Effective odds (after
-   sold-out items drop out) show next to each row, with a live preview of the wheel.
+   sold-out items drop out) show next to each row, with a live preview of the wheel. Changing one prize's weight on its own
+   edit page also works: the active **Try Again** slice takes up the difference automatically, and the page tells you its new value.
 3. `/admin/customers` → **New customer**: name, phone (`010…`, `+20…` or `0020…`), optional invoice and laptop model, and initial
    credits. The access code is shown **once**. Copy it or print the card. Codes are stored hashed and can't be shown again; use
    **Reset code** to issue a new one, which also signs out the old session.
 4. The customer opens the site, enters phone + code and spins. Real wins appear under `/admin/awards`. Mark them **Delivered** when
    handed over.
-5. Use `/admin/customers/{id}` to grant or revoke credits (each change needs a reason and is written to the ledger). Use
+5. Use `/admin/customers/{id}` to grant or revoke credits (each change needs a reason and is written to the ledger), or
+   **Set spins to 0** to stop a customer spinning until you grant credits again. Use
    `/admin/settings` to edit texts, pause the campaign or tune animation and sound.
 
 ## 7. Tests
@@ -125,7 +127,7 @@ read -s "TCS?Test SQL Server (no Database=): "; echo
 SPINWIN_TEST_SQLSERVER="$TCS" dotnet test -c Release; unset TCS
 ```
 
-Without that variable the 27 SQL Server tests show as **skipped**, not passed.
+Without that variable the SQL Server tests show as **skipped** (44), not passed.
 
 ## 8. Publish
 

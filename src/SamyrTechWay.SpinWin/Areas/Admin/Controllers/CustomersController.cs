@@ -74,6 +74,17 @@ public sealed class CustomersController(AdminQueries queries, CustomerAdminServi
         return Redirect($"/admin/customers/{id}");
     }
 
+    [HttpPost("{id:int}/credits/clear")]
+    public async Task<IActionResult> ClearCredits(int id, CancellationToken ct)
+    {
+        var result = await customers.ClearCreditsAsync(id, Actor, ct);
+        if (!result.Ok && result.Error == CustomerAdminService.CustomerNotFoundMessage) return NotFound();
+        Toast(!result.Ok ? result.Error!
+            : result.Value > 0 ? $"Removed {result.Value} spin{(result.Value == 1 ? "" : "s")}. This customer can't spin until you grant credits again."
+            : "This customer already has 0 spins.", result.Ok ? "success" : "error");
+        return Redirect($"/admin/customers/{id}");
+    }
+
     [HttpPost("{id:int}/credits")]
     public async Task<IActionResult> Credits(int id, CreditForm form, CancellationToken ct)
     {

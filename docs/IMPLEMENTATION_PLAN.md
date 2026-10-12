@@ -88,8 +88,8 @@ Admin: `/admin/login`, `POST /admin/logout`, `/admin`, `/admin/customers[/create
 | What | How | Result |
 |---|---|---|
 | Build | `dotnet build -c Release` | 0 warnings, 0 errors |
-| .NET tests (SQLite + HTTP pipeline) | `dotnet test -c Release` | 98 passed, 27 SQL Server tests skipped (no `SPINWIN_TEST_SQLSERVER`) |
-| .NET tests incl. SQL Server | same, with `SPINWIN_TEST_SQLSERVER` → local SQL Server 2022 container | 125 / 125 passed |
+| .NET tests (SQLite + HTTP pipeline) | `dotnet test -c Release` | 108 passed, 44 skipped (SQL Server suite; no `SPINWIN_TEST_SQLSERVER`) |
+| .NET tests incl. SQL Server | same, with `SPINWIN_TEST_SQLSERVER` → local SQL Server 2022 container | 151 passed, 1 skipped (a SQL-Server-only race test, skipped in its SQLite copy by design) |
 | Wheel maths (JS) | `node --test tests/js/wheel-math.test.mjs` | 16 / 16 passed |
 | Migration | `dotnet ef database update` on local SQL Server 2022; `deploy/sql/migrate-idempotent.sql` applied **twice** to an empty DB | OK, idempotent |
 | Publish | `dotnet publish -c Release`, then the published DLL run with `ASPNETCORE_ENVIRONMENT=Production` | Health, routing, auth redirects, 401 API, static files, 404 page, security headers OK |

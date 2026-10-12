@@ -64,6 +64,13 @@
             </div>
             <div class="form-actions" style="margin-top:14px"><button type="submit" class="btn btn-primary"><partial name="_Icon" model="@("coins")" /> Apply</button></div>
         </form>
+        @if (c.SpinCredits > 0)
+        {
+            <form method="post" asp-antiforgery="true" action="/admin/customers/@c.Id/credits/clear" style="margin-top:12px"
+                  data-confirm="Set @c.FullName's spins to 0? They won't be able to spin until you grant credits again. Past prizes are kept.">
+                <button type="submit" class="btn btn-danger btn-sm"><partial name="_Icon" model="@("minus")" /> Set spins to 0</button>
+            </form>
+        }
     </section>
 </div>
 

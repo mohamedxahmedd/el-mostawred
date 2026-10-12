@@ -6,11 +6,15 @@ using SamyrTechWay.SpinWin.Tests.Support;
 
 namespace SamyrTechWay.SpinWin.Tests.Engine;
 
-/// <summary>Admin-side rules: allocation validation (spec §12 case 9), single Try Again, soft delete, duplicate phones.</summary>
+/// <summary>
+/// Admin-side rules: allocation validation (spec §12 case 9), single Try Again, soft delete, duplicate phones, credits.
+/// Runs on SQLite; <see cref="SqlServerAdminRulesTests"/> reruns on SQL Server.
+/// </summary>
 public class AdminRulesTests : IAsyncLifetime
 {
     private TestHost _host = null!;
-    public async ValueTask InitializeAsync() => _host = await TestHost.SqliteAsync();
+    protected virtual Task<TestHost> CreateHostAsync() => TestHost.SqliteAsync();
+    public async ValueTask InitializeAsync() => _host = await CreateHostAsync();
     public async ValueTask DisposeAsync() => await _host.DisposeAsync();
 
     private Task<ServiceResult> SaveAllocationAsync(params AllocationRow[] rows) =>
@@ -41,17 +45,195 @@ public class AdminRulesTests : IAsyncLifetime
         Assert.False(result.Ok);
     }
 
+    private static WheelItemInput PadInput(int basisPoints, bool active = true) => new("Pad", null, null, null, WheelItemKind.Prize, 0,
+        basisPoints, "mousepad", "ruby", null, 3, active, CelebrationTier.Standard, null, null);
+
+    private Task<ServiceResult<int?>> UpdateAsync(int id, WheelItemInput input) => _host.RunAsync(async sp =>
+    {
+        var item = await sp.GetRequiredService<SamyrTechWay.SpinWin.Data.AppDbContext>().WheelItems.AsNoTracking().SingleAsync(w => w.Id == id);
+        return await sp.GetRequiredService<WheelItemAdminService>().UpdateAsync(id, input, null, false, item.RowVersion, TestHost.Admin);
+    });
+
+    private Task<int> WeightAsync(int id) => _host.WithDbAsync(async db => (await db.WheelItems.SingleAsync(w => w.Id == id)).ProbabilityBasisPoints);
+
     [Fact]
-    public async Task Editing_one_active_item_cannot_break_the_100_percent_total()
+    public async Task Editing_one_prize_weight_lets_try_again_absorb_the_difference()
     {
         var ids = await _host.SetWheelAsync(("Pad", WheelItemKind.Prize, 7500, null), ("Try Again", WheelItemKind.TryAgain, 2500, null));
-        var item = await _host.WithDbAsync(db => db.WheelItems.AsNoTracking().SingleAsync(w => w.Id == ids["Pad"]));
-        var input = new WheelItemInput("Pad", null, null, null, WheelItemKind.Prize, 0, 5000, "mousepad", "ruby", null, 3, true,
-            CelebrationTier.Standard, null, null);
-        var result = await _host.RunAsync(sp => sp.GetRequiredService<WheelItemAdminService>()
-            .UpdateAsync(item.Id, input, null, false, item.RowVersion, TestHost.Admin));
+
+        var result = await UpdateAsync(ids["Pad"], PadInput(5000));
+
+        Assert.True(result.Ok, result.Error);
+        Assert.Equal(5000, result.Value);
+        Assert.Equal(5000, await WeightAsync(ids["Pad"]));
+        Assert.Equal(5000, await WeightAsync(ids["Try Again"]));
+    }
+
+    [Fact]
+    public async Task Edit_is_refused_with_a_visible_error_when_try_again_cannot_absorb_the_difference()
+    {
+        var ids = await _host.SetWheelAsync(("Pad", WheelItemKind.Prize, 7500, null), ("Try Again", WheelItemKind.TryAgain, 2500, null));
+
+        var result = await UpdateAsync(ids["Pad"], PadInput(10_000)); // Try Again would drop to 0%
+
         Assert.False(result.Ok);
-        Assert.Equal(7500, (await _host.WithDbAsync(db => db.WheelItems.SingleAsync(w => w.Id == ids["Pad"]))).ProbabilityBasisPoints);
+        Assert.Equal(nameof(SamyrTechWay.SpinWin.Models.ViewModels.WheelItemForm.WeightPercent), result.Field); // shown next to the input
+        Assert.Equal(7500, await WeightAsync(ids["Pad"]));
+        Assert.Equal(2500, await WeightAsync(ids["Try Again"]));
+    }
+
+    [Fact]
+    public async Task Edit_is_refused_when_try_again_changed_after_it_was_read()
+    {
+        var ids = await _host.SetWheelAsync(
+            ("Pad", WheelItemKind.Prize, 5000, null), ("Mug", WheelItemKind.Prize, 2500, null), ("Try Again", WheelItemKind.TryAgain, 2500, null));
+
+        // Another admin saves a change to Try Again (Mug 25% -> 20%, Try Again 25% -> 30%) after this edit took its snapshot
+        // of the wheel but before it loads Try Again to adjust it.
+        var interceptor = new BeforeReadingItem(ids["Try Again"], () => _host.WithDbAsync(async db =>
+        {
+            (await db.WheelItems.SingleAsync(w => w.Id == ids["Mug"])).ProbabilityBasisPoints = 2000;
+            (await db.WheelItems.SingleAsync(w => w.Id == ids["Try Again"])).ProbabilityBasisPoints = 3000;
+            return await db.SaveChangesAsync();
+        }));
+        var result = await _host.RunWithInterceptorsAsync([interceptor], async sp =>
+        {
+            var item = await sp.GetRequiredService<SamyrTechWay.SpinWin.Data.AppDbContext>().WheelItems.AsNoTracking().SingleAsync(w => w.Id == ids["Pad"]);
+            return await sp.GetRequiredService<WheelItemAdminService>().UpdateAsync(ids["Pad"], PadInput(6000), null, false, item.RowVersion, TestHost.Admin);
+        });
+
+        Assert.True(interceptor.Fired);
+        Assert.False(result.Ok);
+        Assert.Contains("Try Again", result.Error);
+        var total = await _host.WithDbAsync(db => db.WheelItems.Where(w => w.IsActive && !w.IsArchived).SumAsync(w => w.ProbabilityBasisPoints));
+        Assert.Equal(10_000, total); // the wheel still adds up
+    }
+
+    /// <summary>Runs concurrent work just before the first query that loads one specific wheel item by id.</summary>
+    private sealed class BeforeReadingItem(int itemId, Func<Task> concurrentWork) : Microsoft.EntityFrameworkCore.Diagnostics.DbCommandInterceptor
+    {
+        public bool Fired { get; private set; }
+
+        public override async ValueTask<Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<System.Data.Common.DbDataReader>> ReaderExecutingAsync(
+            System.Data.Common.DbCommand command, Microsoft.EntityFrameworkCore.Diagnostics.CommandEventData eventData,
+            Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<System.Data.Common.DbDataReader> result, CancellationToken cancellationToken = default)
+        {
+            if (!Fired && command.CommandText.Contains("WheelItems")
+                && command.Parameters.Cast<System.Data.Common.DbParameter>().Any(p => Equals(p.Value, itemId)))
+            {
+                Fired = true;
+                await concurrentWork();
+            }
+            return result;
+        }
+    }
+
+    [Fact]
+    public async Task Clearing_credits_still_succeeds_when_a_spin_lands_mid_way()
+    {
+        // Needs real row-level locking: SQLite serialises the whole file, so a concurrent writer here would deadlock.
+        Assert.SkipUnless(_host.IsSqlServer, "Concurrency case runs in the SQL Server suite.");
+        await _host.SetWheelAsync(("Pad", WheelItemKind.Prize, 7500, null), ("Try Again", WheelItemKind.TryAgain, 2500, null));
+        var id = await _host.CreateCustomerAsync(credits: 3);
+        _host.Random.Next = _ => 0; // the spin wins, using one credit
+
+        var interceptor = new BeforeFirstCreditsUpdate(async () => Assert.True((await _host.SpinAsync(id)).Succeeded));
+        var cleared = await _host.RunWithInterceptorsAsync([interceptor],
+            sp => sp.GetRequiredService<CustomerAdminService>().ClearCreditsAsync(id, TestHost.Admin));
+
+        Assert.True(interceptor.Fired);
+        Assert.True(cleared.Ok, cleared.Error);
+        Assert.Equal(2, cleared.Value); // re-read after the spin
+        Assert.Equal(0, (await _host.CustomerAsync(id)).SpinCredits);
+        Assert.Equal(0, await _host.WithDbAsync(db => db.CreditLedger.Where(l => l.CustomerId == id).SumAsync(l => l.Delta)));
+    }
+
+    private sealed class BeforeFirstCreditsUpdate(Func<Task> concurrentWork) : Microsoft.EntityFrameworkCore.Diagnostics.DbCommandInterceptor
+    {
+        public bool Fired { get; private set; }
+
+        public override async ValueTask<Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int>> NonQueryExecutingAsync(
+            System.Data.Common.DbCommand command, Microsoft.EntityFrameworkCore.Diagnostics.CommandEventData eventData,
+            Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int> result, CancellationToken cancellationToken = default)
+        {
+            if (!Fired && command.CommandText.TrimStart().StartsWith("UPDATE", StringComparison.OrdinalIgnoreCase) && command.CommandText.Contains("SpinCredits"))
+            {
+                Fired = true;
+                await concurrentWork();
+            }
+            return result;
+        }
+    }
+
+    [Fact]
+    public async Task Clearing_credits_for_an_unknown_customer_fails()
+    {
+        var result = await _host.RunAsync(sp => sp.GetRequiredService<CustomerAdminService>().ClearCreditsAsync(999_999, TestHost.Admin));
+        Assert.False(result.Ok);
+        Assert.Equal(CustomerAdminService.CustomerNotFoundMessage, result.Error);
+    }
+
+    [Fact]
+    public async Task Edit_that_breaks_100_percent_is_refused_when_there_is_no_active_try_again()
+    {
+        var ids = await _host.SetWheelAsync(("Pad", WheelItemKind.Prize, 5000, null), ("Mug", WheelItemKind.Prize, 5000, null));
+
+        var result = await UpdateAsync(ids["Pad"], PadInput(4000));
+
+        Assert.False(result.Ok);
+        Assert.Equal(5000, await WeightAsync(ids["Pad"]));
+    }
+
+    [Fact]
+    public async Task Turning_off_the_last_real_prize_from_its_edit_page_is_refused()
+    {
+        var ids = await _host.SetWheelAsync(("Pad", WheelItemKind.Prize, 7500, null), ("Try Again", WheelItemKind.TryAgain, 2500, null));
+
+        var result = await UpdateAsync(ids["Pad"], PadInput(7500, active: false));
+
+        Assert.False(result.Ok);
+        Assert.Equal(2500, await WeightAsync(ids["Try Again"]));
+    }
+
+    [Fact]
+    public async Task Weight_validation_errors_target_the_form_field()
+    {
+        var ids = await _host.SetWheelAsync(("Pad", WheelItemKind.Prize, 7500, null), ("Try Again", WheelItemKind.TryAgain, 2500, null));
+        var result = await UpdateAsync(ids["Pad"], PadInput(0));
+        Assert.False(result.Ok);
+        Assert.Equal(WheelItemAdminService.WeightField, result.Field);
+    }
+
+    [Fact]
+    public async Task Clearing_credits_sets_zero_with_a_ledger_entry_and_blocks_spinning()
+    {
+        await _host.SetWheelAsync(("Pad", WheelItemKind.Prize, 7500, null), ("Try Again", WheelItemKind.TryAgain, 2500, null));
+        var id = await _host.CreateCustomerAsync(credits: 3);
+
+        var cleared = await _host.RunAsync(sp => sp.GetRequiredService<CustomerAdminService>().ClearCreditsAsync(id, TestHost.Admin));
+
+        Assert.True(cleared.Ok, cleared.Error);
+        Assert.Equal(3, cleared.Value);
+        Assert.Equal(0, (await _host.CustomerAsync(id)).SpinCredits);
+        var last = await _host.WithDbAsync(db => db.CreditLedger.Where(l => l.CustomerId == id).OrderByDescending(l => l.Id).FirstAsync());
+        Assert.Equal((-3, 0, CreditReason.AdminRevoke), (last.Delta, last.BalanceAfter, last.Reason));
+        Assert.Equal(0, await _host.WithDbAsync(db => db.CreditLedger.Where(l => l.CustomerId == id).SumAsync(l => l.Delta)));
+        Assert.Equal(1, await _host.WithDbAsync(db => db.AdminAuditLogs.CountAsync(a => a.Action == "credits.clear" && a.TargetId == id.ToString())));
+        Assert.Equal(SpinFailure.NoCredits, (await _host.SpinAsync(id)).Failure);
+    }
+
+    [Fact]
+    public async Task Clearing_credits_when_already_zero_changes_nothing()
+    {
+        var id = await _host.CreateCustomerAsync(credits: 1);
+        await _host.RunAsync(sp => sp.GetRequiredService<CustomerAdminService>().ClearCreditsAsync(id, TestHost.Admin));
+        var ledgerBefore = await _host.WithDbAsync(db => db.CreditLedger.CountAsync(l => l.CustomerId == id));
+
+        var again = await _host.RunAsync(sp => sp.GetRequiredService<CustomerAdminService>().ClearCreditsAsync(id, TestHost.Admin));
+
+        Assert.True(again.Ok);
+        Assert.Equal(0, again.Value);
+        Assert.Equal(ledgerBefore, await _host.WithDbAsync(db => db.CreditLedger.CountAsync(l => l.CustomerId == id)));
     }
 
     [Fact]

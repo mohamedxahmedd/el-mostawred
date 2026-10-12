@@ -30,6 +30,9 @@ public sealed class WheelItemAdminService(AppDbContext db, AuditService audit, T
 {
     public static readonly string[] ColorKeys = ["ruby", "flame", "ember", "amber", "gold", "onyx"];
 
+    /// <summary>Form field that weight errors belong to (the admin form edits weights as a percentage).</summary>
+    public const string WeightField = "WeightPercent";
+
     public const string RebalanceHint =
         "Active wheel items must total exactly 100.00%. Use the Probability allocation table on the Prizes page to change weights or activation together.";
 
@@ -66,28 +69,57 @@ public sealed class WheelItemAdminService(AppDbContext db, AuditService audit, T
         return ServiceResult<WheelItem>.Success(created);
     }
 
-    public async Task<ServiceResult> UpdateAsync(int id, WheelItemInput input, NewImage? image, bool removeImage, byte[] rowVersion, AdminActor actor, CancellationToken ct = default)
+    /// <summary>
+    /// Saves one item. When the change would move the active total off 100%, the active Try Again slice absorbs the
+    /// difference (it must stay above 0%). Returns Try Again's new weight in basis points when it was adjusted, else null.
+    /// </summary>
+    public async Task<ServiceResult<int?>> UpdateAsync(int id, WheelItemInput input, NewImage? image, bool removeImage, byte[] rowVersion, AdminActor actor, CancellationToken ct = default)
     {
         var item = await db.WheelItems.FirstOrDefaultAsync(i => i.Id == id, ct);
-        if (item is null) return ServiceResult.Fail("Wheel item not found.");
-        if (item.IsArchived) return ServiceResult.Fail("Restore this item before editing it.");
+        if (item is null) return ServiceResult<int?>.Fail("Wheel item not found.");
+        if (item.IsArchived) return ServiceResult<int?>.Fail("Restore this item before editing it.");
 
         input = input with { Kind = item.Kind }; // kind is fixed after creation
         var error = Validate(input);
-        if (error is not null) return ServiceResult.Fail(error.Value.Message, error.Value.Field);
+        if (error is not null) return ServiceResult<int?>.Fail(error.Value.Message, error.Value.Field);
 
         var others = await db.WheelItems.AsNoTracking().Where(i => i.Id != id && i.IsActive && !i.IsArchived).ToListAsync(ct);
+        if (input.IsActive && item.Kind == WheelItemKind.TryAgain && others.Any(i => i.Kind == WheelItemKind.TryAgain))
+            return ServiceResult<int?>.Fail("Only one Try Again item can be active.", "IsActive");
+
+        var now = clock.GetUtcNow().UtcDateTime;
+        WheelItem? retry = null;
+        int? retryBefore = null;
         if (item.IsActive || input.IsActive)
         {
             var total = others.Sum(i => i.ProbabilityBasisPoints) + (input.IsActive ? input.BasisPoints : 0);
             if (total != WheelOdds.FullAllocation)
-                return ServiceResult.Fail($"This change would make the active total {Percent(total)}. {RebalanceHint}", "BasisPoints");
+            {
+                if (item.Kind == WheelItemKind.TryAgain)
+                    return ServiceResult<int?>.Fail($"This change would make the active total {Percent(total)}. To change Try Again's weight, use the allocation table on the Prizes page.", WeightField);
+                if (!input.IsActive && !others.Any(i => i.Kind == WheelItemKind.Prize))
+                    return ServiceResult<int?>.Fail("At least one real prize must stay active, or nobody could win. Activate another prize first.", "IsActive");
+
+                var activeRetry = others.FirstOrDefault(i => i.Kind == WheelItemKind.TryAgain);
+                var adjusted = activeRetry is null ? 0 : activeRetry.ProbabilityBasisPoints + (WheelOdds.FullAllocation - total);
+                if (activeRetry is null || adjusted <= 0 || adjusted > WheelOdds.FullAllocation)
+                {
+                    var why = activeRetry is null
+                        ? "There is no active Try Again slice to balance against."
+                        : $"Try Again ({Percent(activeRetry.ProbabilityBasisPoints)}) can't absorb that difference.";
+                    return ServiceResult<int?>.Fail($"This change would make the active total {Percent(total)}. {why} {RebalanceHint}", WeightField);
+                }
+
+                // The new weight is computed from the snapshot above, so the save must fail if Try Again changed since then.
+                retry = await db.WheelItems.FirstAsync(i => i.Id == activeRetry.Id, ct);
+                db.Entry(retry).Property(r => r.RowVersion).OriginalValue = activeRetry.RowVersion;
+                retryBefore = activeRetry.ProbabilityBasisPoints;
+                retry.ProbabilityBasisPoints = adjusted;
+                retry.UpdatedAtUtc = now;
+            }
         }
-        if (input.IsActive && item.Kind == WheelItemKind.TryAgain && others.Any(i => i.Kind == WheelItemKind.TryAgain))
-            return ServiceResult.Fail("Only one Try Again item can be active.", "IsActive");
 
         db.Entry(item).Property(i => i.RowVersion).OriginalValue = rowVersion;
-        var now = clock.GetUtcNow().UtcDateTime;
         var before = new { item.NameEn, item.ProbabilityBasisPoints, item.StockQuantity, item.IsActive, tier = item.CelebrationTier.ToString() };
         Apply(item, input, now);
         if (image is not null) item.ImageId = AddImage(image, now);
@@ -98,19 +130,28 @@ public sealed class WheelItemAdminService(AppDbContext db, AuditService audit, T
             before,
             after = new { item.NameEn, item.ProbabilityBasisPoints, item.StockQuantity, item.IsActive, tier = item.CelebrationTier.ToString() },
             imageChanged = image is not null || removeImage,
+            tryAgainAdjusted = retry is null ? null : new { retry.Id, from = retryBefore, to = retry.ProbabilityBasisPoints },
         });
+        if (retry is not null)
+            audit.Record(actor, "prize.update", "WheelItem", retry.Id.ToString(), new
+            {
+                weight = new { from = retryBefore, to = retry.ProbabilityBasisPoints },
+                reason = $"Balanced automatically when wheel item {id} was saved",
+            });
         try
         {
             await db.SaveChangesAsync(ct);
-            return ServiceResult.Success;
+            return ServiceResult<int?>.Success(retry?.ProbabilityBasisPoints);
         }
         catch (DbUpdateConcurrencyException)
         {
-            return ServiceResult.Fail("This item changed since you opened it (for example, stock was reserved by a win). Reload and try again.");
+            return ServiceResult<int?>.Fail(retry is null
+                ? "This item changed since you opened it (for example, stock was reserved by a win). Reload and try again."
+                : "This item or the Try Again slice changed since you opened it (for example, someone saved the allocation table). Reload and try again.");
         }
         catch (DbUpdateException ex) when (DbErrors.IsUniqueViolation(ex))
         {
-            return ServiceResult.Fail("Only one Try Again item can be active.", "IsActive");
+            return ServiceResult<int?>.Fail("Only one Try Again item can be active.", "IsActive");
         }
     }
 
@@ -247,8 +288,8 @@ public sealed class WheelItemAdminService(AppDbContext db, AuditService audit, T
         if (string.IsNullOrWhiteSpace(input.NameEn)) return ("English name is required.", "NameEn");
         if (!Enum.IsDefined(input.Kind)) return ("Choose an item type.", "Kind");
         if (!Enum.IsDefined(input.Tier)) return ("Choose a celebration tier.", "Tier");
-        if (input.BasisPoints is < 0 or > WheelOdds.FullAllocation) return ("Weight must be between 0.00% and 100.00%.", "BasisPoints");
-        if (input.IsActive && input.BasisPoints == 0) return ("Active items need a weight above 0.00%.", "BasisPoints");
+        if (input.BasisPoints is < 0 or > WheelOdds.FullAllocation) return ("Weight must be between 0.00% and 100.00%.", WeightField);
+        if (input.IsActive && input.BasisPoints == 0) return ("Active items need a weight above 0.00%.", WeightField);
         if (input.StockQuantity is < 0) return ("Stock cannot be negative. Leave it empty for unlimited.", "StockQuantity");
         if (input.LowStockThreshold is < 0 or > 1000) return ("Low-stock alert must be between 0 and 1000.", "LowStockThreshold");
         if (input.IconKey is not null && !PrizeIcons.IsValid(input.IconKey)) return ("Choose an icon from the list.", "IconKey");

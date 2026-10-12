@@ -25,7 +25,11 @@
         <div class="field">
             <label class="label" asp-for="WeightPercent"></label>
             <input class="input" asp-for="WeightPercent" type="number" min="0" max="100" step="0.01" inputmode="decimal" />
-            <span class="hint">Saving an active item requires all active weights to total 100.00%. For bigger changes use the allocation table.</span>
+            <span class="hint">@(Model.Id is null
+                ? "New items usually start inactive: switch them on together in the allocation table, where active weights must total 100.00%."
+                : Model.Kind == WheelItemKind.Prize
+                    ? "Active weights always total 100.00%: when you change this one, Try Again takes up the difference automatically. To change several at once, use the allocation table."
+                    : "Active weights must total 100.00%. To change Try Again, use the allocation table on the Prizes page.")</span>
             <span class="field-error" asp-validation-for="WeightPercent"></span>
         </div>
         <div class="field">
