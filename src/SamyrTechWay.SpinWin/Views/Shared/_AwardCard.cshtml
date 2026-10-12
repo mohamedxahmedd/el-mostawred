@@ -1,0 +1,31 @@
+@model AwardCard
+<article class="award-card panel" data-award-id="@Model.Id">
+    <div class="prize-medal" aria-hidden="true">
+        @if (Model.ImageUrl is not null)
+        {
+            <img src="@Model.ImageUrl" alt="" loading="lazy" />
+        }
+        else
+        {
+            <svg class="icon"><use href="/assets/icons/ui.svg#p-@Model.Icon"></use></svg>
+        }
+    </div>
+    <div style="min-width:0">
+        <span class="badge badge-tier-@Model.Tier">@Model.Tier</span>
+        <h3>@Model.Name</h3>
+        <div class="award-meta">
+            <span class="badge @(Model.Status == "Delivered" ? "badge-ok" : "badge-warn")">@T[$"prizes.status.{Model.Status}"]</span>
+            <span>@T.Format("prizes.wonon", Model.WonOn)</span>
+        </div>
+        @if (Model.Status != "Delivered")
+        {
+            <p class="award-pickup">@Model.Pickup</p>
+        }
+        <div class="award-actions">
+            <button type="button" class="btn btn-gold btn-sm" data-share
+                    data-name="@Model.Name" data-tier="@Model.Tier" data-image="@Model.ImageUrl" data-icon="@Model.Icon" data-color="@Model.Color" data-date="@Model.WonOn">
+                <partial name="_Icon" model="@("share-2")" /> @T["result.share"]
+            </button>
+        </div>
+    </div>
+</article>

@@ -1,0 +1,16 @@
+@model ErrorViewModel
+@{
+    ViewData["Title"] = Model.Title;
+    if (Model.IsAdmin)
+    {
+        Layout = Model.AdminSignedIn ? "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml" : "~/Areas/Admin/Views/Account/_AuthLayout.cshtml";
+    }
+}
+<div class="error-page">
+    <div class="panel">
+        <div class="error-code text-gold">@Model.StatusCode</div>
+        <h1>@Model.Title</h1>
+        <p class="muted">@Model.Message</p>
+        <a class="btn btn-primary" href="@(Model.IsAdmin ? "/admin" : "/")">@(Model.IsAdmin ? (Model.AdminSignedIn ? "Back to dashboard" : "Admin sign in") : T["error.home"])</a>
+    </div>
+</div>

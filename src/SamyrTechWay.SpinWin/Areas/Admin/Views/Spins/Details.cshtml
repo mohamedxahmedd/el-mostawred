@@ -1,0 +1,48 @@
+@model SpinDetailsViewModel
+@{
+    var a = Model.Attempt;
+    ViewData["Title"] = "Spin " + a.Id.ToString()[..8];
+    ViewData["Section"] = "spins";
+}
+<div class="page-actions"><a class="btn btn-ghost btn-sm" href="/admin/spins"><partial name="_Icon" model="@("arrow-left")" /> All spins</a></div>
+<div class="grid-2-even">
+    <section class="card">
+        <div class="card-head"><h2>Outcome</h2><span class="badge @(a.Kind == SpinResultKind.Won ? "badge-flame" : "badge-muted")">@(a.Kind == SpinResultKind.Won ? "Won a prize" : "Try Again (credit refunded)")</span></div>
+        <dl class="dl">
+            <dt>Time (Cairo)</dt><dd>@CairoTime.Format(a.CreatedAtUtc, "dddd dd MMM yyyy, HH:mm:ss")</dd>
+            <dt>Time (UTC)</dt><dd class="mono">@a.CreatedAtUtc.ToString("u")</dd>
+            <dt>Customer</dt><dd><a href="/admin/customers/@Model.Customer.Id">@Model.Customer.FullName</a> · <span class="mono">@PhoneNumber.Mask(Model.Customer.NormalizedPhone)</span></dd>
+            <dt>Invoice</dt><dd>@(Model.Customer.InvoiceReference ?? "—")</dd>
+            <dt>Item (snapshot)</dt><dd>@a.ItemNameEn@(a.ItemNameAr is null ? "" : $" · {a.ItemNameAr}") <partial name="_Tier" model="a.CelebrationTier" /></dd>
+            <dt>Credits</dt><dd>@a.CreditsBefore → @a.CreditsAfter</dd>
+            <dt>Configured weight</dt><dd>@WheelItemAdminService.Percent(a.ConfiguredBasisPoints)</dd>
+            <dt>Effective odds</dt><dd>@a.EffectiveWeight / @a.EffectiveTotalWeight (@WheelPresenter.FormatPercent(a.EffectiveTotalWeight == 0 ? 0 : (double)a.EffectiveWeight / a.EffectiveTotalWeight))</dd>
+            <dt>Attempt ID</dt><dd class="mono">@a.Id</dd>
+            <dt>Request key</dt><dd class="mono">@a.RequestId</dd>
+        </dl>
+    </section>
+    <section class="card">
+        <div class="card-head"><h2>Award</h2></div>
+        @if (Model.Award is { } aw)
+        {
+            <dl class="dl">
+                <dt>Prize</dt><dd>@aw.PrizeNameEn</dd>
+                <dt>Status</dt><dd><span class="badge @(aw.Status == AwardStatus.Delivered ? "badge-ok" : "badge-warn")">@aw.Status</span></dd>
+                <dt>Delivered</dt><dd>@(aw.DeliveredAtUtc is { } d ? $"{CairoTime.Format(d)} by {aw.DeliveredByAdminName}" : "—")</dd>
+                <dt>Note</dt><dd>@(aw.AdminNote ?? "—")</dd>
+            </dl>
+            @if (aw.Status == AwardStatus.Pending)
+            {
+                <form method="post" asp-antiforgery="true" action="/admin/awards/@aw.Id/deliver" style="margin-top:16px;display:grid;gap:10px" data-confirm="Mark this award as delivered?">
+                    <input type="hidden" name="returnUrl" value="/admin/spins/@a.Id" />
+                    <input class="input" name="note" maxlength="500" placeholder="Optional note (e.g. collected at branch)" />
+                    <button type="submit" class="btn btn-gold"><partial name="_Icon" model="@("check")" /> Mark as delivered</button>
+                </form>
+            }
+        }
+        else
+        {
+            <p class="empty">Try Again creates no award. The customer's credit was refunded in the same transaction.</p>
+        }
+    </section>
+</div>

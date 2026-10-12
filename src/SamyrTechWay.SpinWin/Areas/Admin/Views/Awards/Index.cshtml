@@ -1,0 +1,62 @@
+@model AwardListViewModel
+@{
+    ViewData["Title"] = "Awards";
+    ViewData["Section"] = "awards";
+    var f = Model.Filter;
+    string PageUrl(int p) => $"/admin/awards?Status={f.Status}&Q={Uri.EscapeDataString(f.Q ?? "")}&Page={p}";
+    var here = Context.Request.Path + Context.Request.QueryString;
+}
+<form class="filters card" method="get" action="/admin/awards" role="search">
+    <div class="field grow"><label class="label" for="q">Search</label><input class="input" id="q" name="Q" value="@f.Q" placeholder="Customer, phone, invoice or prize" /></div>
+    <div class="field">
+        <label class="label" for="st">Status</label>
+        <select class="select" id="st" name="Status">
+            <option value="pending" selected="@(f.Status == "pending")">Pending delivery</option>
+            <option value="delivered" selected="@(f.Status == "delivered")">Delivered</option>
+            <option value="all" selected="@(f.Status == "all")">All</option>
+        </select>
+    </div>
+    <button type="submit" class="btn"><partial name="_Icon" model="@("filter")" /> Apply</button>
+</form>
+<section class="card">
+    @if (Model.Result.Items.Count == 0)
+    {
+        <p class="empty">@(f.Status == "pending" ? "No awards waiting for delivery." : "No awards match these filters.")</p>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table class="data stack">
+                <thead><tr><th>Won</th><th>Prize</th><th>Customer</th><th>Invoice</th><th>Status</th><th>Delivery</th></tr></thead>
+                <tbody>
+                    @foreach (var a in Model.Result.Items)
+                    {
+                        <tr>
+                            <td data-label="Won" class="mono"><a href="/admin/spins/@a.SpinAttemptId">@CairoTime.Format(a.CreatedAtUtc)</a></td>
+                            <td data-label="Prize"><span class="strong">@a.PrizeName</span> <partial name="_Tier" model="a.Tier" /></td>
+                            <td data-label="Customer"><a href="/admin/customers/@a.CustomerId">@a.CustomerName</a> <span class="mono">@a.MaskedPhone</span></td>
+                            <td data-label="Invoice">@(a.Invoice ?? "—")</td>
+                            <td data-label="Status"><span class="badge @(a.Status == AwardStatus.Delivered ? "badge-ok" : "badge-warn")">@a.Status</span></td>
+                            <td data-label="Delivery">
+                                @if (a.Status == AwardStatus.Pending)
+                                {
+                                    <form method="post" asp-antiforgery="true" action="/admin/awards/@a.Id/deliver" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end" data-confirm="Mark “@a.PrizeName” for @a.CustomerName as delivered?">
+                                        <input type="hidden" name="returnUrl" value="@here" />
+                                        <input class="input" name="note" maxlength="500" placeholder="Note (optional)" style="min-height:38px;padding:6px 10px;font-size:14px;width:170px" aria-label="Delivery note" />
+                                        <button type="submit" class="btn btn-xs btn-gold"><partial name="_Icon" model="@("check")" /> Delivered</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <span class="mono">@(a.DeliveredAtUtc is { } d ? CairoTime.Format(d) : "")</span> <span class="dim">by @a.DeliveredBy</span>
+                                    @if (a.Note is not null) { <div class="hint">@a.Note</div> }
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div style="margin-top:14px"><partial name="_Pager" model="(Model.Result.Page, Model.Result.Pages, Model.Result.Total, (Func<int, string>)PageUrl)" /></div>
+    }
+</section>

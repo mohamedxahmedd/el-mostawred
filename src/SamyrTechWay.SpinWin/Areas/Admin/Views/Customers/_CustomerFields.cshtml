@@ -1,0 +1,41 @@
+@model CustomerForm
+@{ var isCreate = ViewData["IsCreate"] is true; }
+<div asp-validation-summary="ModelOnly" class="alert alert-error" role="alert"></div>
+<div class="form-grid">
+    <div class="field">
+        <label class="label" asp-for="FullName"></label>
+        <input class="input" asp-for="FullName" autocomplete="off" />
+        <span class="field-error" asp-validation-for="FullName"></span>
+    </div>
+    <div class="field">
+        <label class="label" asp-for="Phone"></label>
+        <input class="input" asp-for="Phone" type="tel" inputmode="tel" autocomplete="off" placeholder="010 1234 5678" dir="ltr" />
+        <span class="hint">Egyptian mobile: 01X XXXX XXXX, +20… or 20… are all accepted.</span>
+        <span class="field-error" asp-validation-for="Phone"></span>
+    </div>
+    <div class="field">
+        <label class="label" asp-for="InvoiceReference"></label>
+        <input class="input" asp-for="InvoiceReference" autocomplete="off" />
+        <span class="field-error" asp-validation-for="InvoiceReference"></span>
+    </div>
+    <div class="field">
+        <label class="label" asp-for="LaptopModel"></label>
+        <input class="input" asp-for="LaptopModel" autocomplete="off" />
+        <span class="field-error" asp-validation-for="LaptopModel"></span>
+    </div>
+    @if (isCreate)
+    {
+        <div class="field">
+            <label class="label" asp-for="InitialCredits"></label>
+            <input class="input" asp-for="InitialCredits" type="number" min="0" max="@CustomerAdminService.MaxInitialCredits" inputmode="numeric" />
+            <span class="hint">One spin per laptop purchase is the default.</span>
+            <span class="field-error" asp-validation-for="InitialCredits"></span>
+        </div>
+    }
+    <div class="field span-2">
+        <label class="label" asp-for="Notes"></label>
+        <textarea class="textarea" asp-for="Notes" rows="3"></textarea>
+        <span class="hint">Private — never shown to the customer.</span>
+        <span class="field-error" asp-validation-for="Notes"></span>
+    </div>
+</div>

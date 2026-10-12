@@ -1,0 +1,24 @@
+@{
+    var firstName = User.FindFirst(System.Security.Claims.ClaimTypes.GivenName)?.Value ?? "";
+}
+<dialog class="modal" id="share-dialog" aria-labelledby="share-title" data-first-name="@firstName">
+    <div class="panel modal-body">
+        <button type="button" class="btn btn-ghost btn-icon modal-close" data-close aria-label="@T["share.close"]"><partial name="_Icon" model="@("x")" /></button>
+        <div class="share-body">
+            <h2 id="share-title">@T["share.title"]</h2>
+            <div class="share-preview" id="share-preview" aria-live="polite">
+                <div class="cta-hint"><span class="spinner" aria-hidden="true"></span> @T["share.generating"]</div>
+            </div>
+            @if (!string.IsNullOrEmpty(firstName))
+            {
+                <label class="check"><input type="checkbox" id="share-name" /><span class="switch" aria-hidden="true"></span> @T["share.name"]</label>
+            }
+            <p class="hint"><partial name="_Icon" model="@("lock")" /><span>@T["share.privacy"]</span></p>
+            <div class="share-actions">
+                <button type="button" class="btn btn-primary" id="share-native" hidden><partial name="_Icon" model="@("share-2")" /> @T["share.share"]</button>
+                <button type="button" class="btn btn-gold" id="share-download"><partial name="_Icon" model="@("download")" /> @T["share.download"]</button>
+                <button type="button" class="btn" id="share-copy" hidden><partial name="_Icon" model="@("copy")" /> @T["share.copy"]</button>
+            </div>
+        </div>
+    </div>
+</dialog>

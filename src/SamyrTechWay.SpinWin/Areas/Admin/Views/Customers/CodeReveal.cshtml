@@ -1,0 +1,33 @@
+@model AccessCodeReveal
+@{
+    ViewData["Title"] = Model.IsNew ? "Customer created" : "New access code";
+    ViewData["Section"] = "customers";
+    Context.Response.Headers.CacheControl = "no-store";
+}
+<section class="card code-reveal">
+    <span class="badge badge-ok"><partial name="_Icon" model="@("circle-check")" /> @(Model.IsNew ? "Customer saved" : "Access code reset")</span>
+    <h2 style="font-size:24px">@Model.FullName</h2>
+    <p class="muted"><span class="mono">@Model.Phone</span> · @Model.Credits spin credit@(Model.Credits == 1 ? "" : "s")</p>
+    <p class="muted">Private access code — shown <strong>only now</strong>. It is stored as a secure hash and can't be displayed again.</p>
+    <div class="code-box" id="access-code">@Model.Code</div>
+    @if (!Model.IsNew)
+    {
+        <p class="alert alert-warn" style="text-align:start"><partial name="_Icon" model="@("info")" /><span>The previous code no longer works and any signed-in sessions for this customer were ended.</span></p>
+    }
+    <div class="form-actions" style="justify-content:center">
+        <button type="button" class="btn btn-gold" data-copy="#access-code"><partial name="_Icon" model="@("copy")" /> Copy code</button>
+        <button type="button" class="btn" data-print><partial name="_Icon" model="@("printer")" /> Print card</button>
+        <a class="btn btn-primary" href="/admin/customers/@Model.CustomerId">Open customer <partial name="_Icon" model="@("arrow-right")" /></a>
+    </div>
+    <p class="hint">Customer signs in at <span class="mono">@Model.SiteUrl</span> with their mobile number and this code.</p>
+</section>
+
+<div class="print-card" aria-hidden="true">
+    <div class="pc-head">
+        <img src="~/assets/brand/derived/logo-180.png" alt="" />
+        <div><div class="pc-title">SAMYR TECH WAY · SPIN &amp; WIN</div><div class="pc-small">Your purchase. Your moment. Your reward.</div></div>
+    </div>
+    <div class="pc-small">@Model.FullName — @Model.Phone</div>
+    <div class="pc-code">@Model.Code</div>
+    <div class="pc-small">Sign in at @Model.SiteUrl with your mobile number and this private code. Keep it secret. · ادخل بالموقع برقم موبايلك والكود ده.</div>
+</div>

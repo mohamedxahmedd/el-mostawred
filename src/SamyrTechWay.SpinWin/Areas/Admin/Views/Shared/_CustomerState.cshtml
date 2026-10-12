@@ -1,0 +1,13 @@
+@model CustomerState
+@switch (Model)
+{
+    case CustomerState.Eligible:
+        <span class="badge badge-ok">Eligible</span>
+        break;
+    case CustomerState.Finished:
+        <span class="badge badge-muted">Finished</span>
+        break;
+    default:
+        <span class="badge badge-bad">Disabled</span>
+        break;
+}

@@ -1,0 +1,171 @@
+@model DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+    ViewData["Section"] = "dashboard";
+    var maxA = Math.Max(1, Model.Activity.Max(a => a.Attempts));
+    // Four gridline steps of a clean 1/2/5 × 10^n size, so every tick label is a whole number.
+    int NiceStep(double v) { var p = Math.Pow(10, Math.Floor(Math.Log10(Math.Max(1, v)))); foreach (var m in new[] { 1, 2, 5, 10 }) if (m * p >= v) return (int)(m * p); return (int)(10 * p); }
+    var yMax = NiceStep(maxA / 4.0) * 4;
+    const int W = 560, H = 200, padL = 34, padB = 26, padT = 18;
+    var plotW = W - padL - 6; var plotH = H - padB - padT;
+    var band = plotW / (double)Model.Activity.Count;
+    var barW = Math.Min(24, band * 0.5);
+}
+@if (!Model.CampaignEnabled)
+{
+    <div class="alert alert-warn" role="alert"><partial name="_Icon" model="@("circle-pause")" /><span><strong>Campaign paused.</strong> Customers can sign in and see their prizes, but nobody can spin. <a href="/admin/settings">Open settings</a></span></div>
+}
+@if (Model.WheelStatus != WheelStatus.Ready)
+{
+    <div class="alert alert-error" role="alert"><partial name="_Icon" model="@("triangle-alert")" />
+        <span>
+            <strong>Spins are blocked.</strong>
+            @(Model.WheelStatus == WheelStatus.InvalidAllocation
+                ? $"Active wheel weights total {WheelItemAdminService.Percent(Model.ConfiguredTotal)}; they must total exactly 100.00%."
+                : "No real prize is currently eligible (all inactive or out of stock). Customers see a friendly maintenance message and no credits are used.")
+            <a href="/admin/prizes">Fix in Prizes &amp; odds</a>
+        </span>
+    </div>
+}
+
+<section class="kpis" aria-label="Key figures">
+    <a class="kpi" href="/admin/customers"><span class="kpi-label"><partial name="_Icon" model="@("users")" /> Customers</span><span class="kpi-value">@Model.Customers.ToString("N0")</span><span class="kpi-sub">@Model.ActiveCustomers.ToString("N0") active</span></a>
+    <a class="kpi" href="/admin/customers?WithCredits=true"><span class="kpi-label"><partial name="_Icon" model="@("coins")" /> Available credits</span><span class="kpi-value">@Model.AvailableCredits.ToString("N0")</span><span class="kpi-sub">@Model.CustomersWithCredits.ToString("N0") @(Model.CustomersWithCredits == 1 ? "customer" : "customers") can spin</span></a>
+    <div class="kpi"><span class="kpi-label"><partial name="_Icon" model="@("ticket")" /> Consumed credits</span><span class="kpi-value">@Model.ConsumedCredits.ToString("N0")</span><span class="kpi-sub">spent on real prizes</span></div>
+    <a class="kpi" href="/admin/spins"><span class="kpi-label"><partial name="_Icon" model="@("dices")" /> Total spins</span><span class="kpi-value">@Model.TotalAttempts.ToString("N0")</span><span class="kpi-sub">@Model.TryAgainAttempts.ToString("N0") Try Again (refunded)</span></a>
+    <a class="kpi" href="/admin/spins?Kind=won"><span class="kpi-label"><partial name="_Icon" model="@("trophy")" /> Real wins</span><span class="kpi-value">@Model.RealWins.ToString("N0")</span><span class="kpi-sub">awards created</span></a>
+    <a class="kpi" href="/admin/awards?Status=pending"><span class="kpi-label"><partial name="_Icon" model="@("package")" /> Awaiting delivery</span><span class="kpi-value">@Model.PendingAwards.ToString("N0")</span><span class="kpi-sub">pending awards</span></a>
+    <a class="kpi" href="/admin/awards?Status=delivered"><span class="kpi-label"><partial name="_Icon" model="@("circle-check")" /> Delivered</span><span class="kpi-value">@Model.DeliveredAwards.ToString("N0")</span><span class="kpi-sub">handed to customers</span></a>
+    <a class="kpi" href="/admin/prizes"><span class="kpi-label"><partial name="_Icon" model="@("gift")" /> Active prizes</span><span class="kpi-value">@Model.ActivePrizes.ToString("N0")</span><span class="kpi-sub">@(Model.WheelStatus == WheelStatus.Ready ? "wheel ready" : "wheel blocked")</span></a>
+</section>
+
+<div class="grid-2">
+    <section class="card" aria-labelledby="chart-title">
+        <div class="card-head">
+            <h2 id="chart-title">Spins per day</h2>
+            <span class="hint">Last 7 days · Egypt time</span>
+        </div>
+        <div class="chart" id="activity-chart">
+            <svg viewBox="0 0 @W @H" role="img" aria-label="Spins per day for the last seven days. Details in the table below.">
+                <g class="grid">
+                    @for (var i = 0; i <= 4; i++)
+                    {
+                        var y = padT + plotH - plotH * i / 4.0;
+                        <line x1="@padL" x2="@W" y1="@y.ToString("0.#")" y2="@y.ToString("0.#")" />
+                    }
+                </g>
+                <g class="axis">
+                    @for (var i = 0; i <= 4; i++)
+                    {
+                        var y = padT + plotH - plotH * i / 4.0;
+                        <!text x="@(padL - 8)" y="@((y + 4).ToString("0.#"))" text-anchor="end">@(yMax * i / 4)</!text>
+                    }
+                    @for (var i = 0; i < Model.Activity.Count; i++)
+                    {
+                        var cx = padL + band * i + band / 2;
+                        <!text x="@cx.ToString("0.#")" y="@(H - 6)" text-anchor="middle">@Model.Activity[i].Label</!text>
+                    }
+                </g>
+                @for (var i = 0; i < Model.Activity.Count; i++)
+                {
+                    var d = Model.Activity[i];
+                    var cx = padL + band * i + band / 2;
+                    var h = plotH * d.Attempts / (double)yMax;
+                    var x = cx - barW / 2; var y = padT + plotH - h; var r = Math.Min(4, h);
+                    <rect class="hit" x="@((padL + band * i).ToString("0.#"))" y="@padT" width="@band.ToString("0.#")" height="@plotH" tabindex="0"
+                          data-label="@d.Label" data-spins="@d.Attempts" data-wins="@d.Wins" aria-label="@d.Label: @d.Attempts spins, @d.Wins wins" />
+                    @if (d.Attempts > 0)
+                    {
+                        <path class="bar" d="M@(x.ToString("0.##")) @((padT + plotH).ToString("0.##")) V@((y + r).ToString("0.##")) Q@(x.ToString("0.##")) @(y.ToString("0.##")) @((x + r).ToString("0.##")) @(y.ToString("0.##")) H@((x + barW - r).ToString("0.##")) Q@((x + barW).ToString("0.##")) @(y.ToString("0.##")) @((x + barW).ToString("0.##")) @((y + r).ToString("0.##")) V@((padT + plotH).ToString("0.##")) Z" pointer-events="none" />
+                    }
+                }
+                @{ var peak = Model.Activity.Select((a, i) => (a, i)).OrderByDescending(p => p.a.Attempts).First(); }
+                @if (peak.a.Attempts > 0)
+                {
+                    var px = padL + band * peak.i + band / 2; var py = padT + plotH - plotH * peak.a.Attempts / (double)yMax - 6;
+                    <!text class="value" x="@px.ToString("0.#")" y="@py.ToString("0.#")" text-anchor="middle">@peak.a.Attempts</!text>
+                }
+            </svg>
+            <div class="chart-tip" id="chart-tip" hidden></div>
+        </div>
+        <details class="disclosure" style="margin-top:12px">
+            <summary>Table view <partial name="_Icon" model="@("chevron-down")" /></summary>
+            <div class="disclosure-body">
+                <table class="data">
+                    <thead><tr><th>Day</th><th class="num">Spins</th><th class="num">Real wins</th><th class="num">Try Again</th></tr></thead>
+                    <tbody>
+                        @foreach (var d in Model.Activity)
+                        {
+                            <tr><td>@d.Label</td><td class="num">@d.Attempts</td><td class="num">@d.Wins</td><td class="num">@(d.Attempts - d.Wins)</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </details>
+    </section>
+
+    <section class="card" aria-labelledby="pending-title">
+        <div class="card-head"><h2 id="pending-title">Awards to deliver</h2><a class="btn btn-xs" href="/admin/awards">All awards</a></div>
+        @if (Model.RecentPendingAwards.Count == 0)
+        {
+            <p class="empty">Nothing waiting. New wins appear here.</p>
+        }
+        else
+        {
+            <table class="data stack">
+                <thead><tr><th>Prize</th><th>Customer</th><th>Won</th></tr></thead>
+                <tbody>
+                    @foreach (var a in Model.RecentPendingAwards)
+                    {
+                        <tr>
+                            <td data-label="Prize"><span class="strong">@a.PrizeName</span> <partial name="_Tier" model="a.Tier" /></td>
+                            <td data-label="Customer"><a href="/admin/customers/@a.CustomerId">@a.CustomerName</a></td>
+                            <td data-label="Won" class="mono">@CairoTime.Format(a.CreatedAtUtc)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        @if (Model.StockAlerts.Count > 0)
+        {
+            <div class="card-head" style="margin-top:18px"><h3>Low stock</h3></div>
+            <ul class="legend-list" style="list-style:none;margin:0;padding:0;display:grid;gap:8px">
+                @foreach (var s in Model.StockAlerts)
+                {
+                    <li class="alert @(s.Stock == 0 ? "alert-error" : "alert-warn")" style="padding:10px 12px">
+                        <partial name="_Icon" model="@("triangle-alert")" />
+                        <span><a href="/admin/prizes/@s.Id/edit">@s.Name</a> — @(s.Stock == 0 ? "out of stock (excluded from the wheel)" : $"{s.Stock} left (alert at {s.Threshold})")</span>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+</div>
+
+<section class="card" aria-labelledby="recent-title">
+    <div class="card-head"><h2 id="recent-title">Recent spins</h2><a class="btn btn-xs" href="/admin/spins">All spins</a></div>
+    @if (Model.RecentAttempts.Count == 0)
+    {
+        <p class="empty">No spins yet. Create a customer, give them their access code and they can play at the customer site.</p>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table class="data stack">
+                <thead><tr><th>Time (Cairo)</th><th>Customer</th><th>Phone</th><th>Item</th><th>Result</th></tr></thead>
+                <tbody>
+                    @foreach (var a in Model.RecentAttempts)
+                    {
+                        <tr>
+                            <td data-label="Time" class="mono"><a href="/admin/spins/@a.Id">@CairoTime.Format(a.CreatedAtUtc)</a></td>
+                            <td data-label="Customer"><a href="/admin/customers/@a.CustomerId">@a.CustomerName</a></td>
+                            <td data-label="Phone" class="mono">@a.MaskedPhone</td>
+                            <td data-label="Item">@a.ItemName</td>
+                            <td data-label="Result"><span class="badge @(a.Kind == SpinResultKind.Won ? "badge-flame" : "badge-muted")">@(a.Kind == SpinResultKind.Won ? "Won" : "Try Again")</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>

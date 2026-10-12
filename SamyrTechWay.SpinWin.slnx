@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SamyrTechWay.SpinWin/SamyrTechWay.SpinWin.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SamyrTechWay.SpinWin.Tests/SamyrTechWay.SpinWin.Tests.csproj" />
+  </Folder>
+</Solution>

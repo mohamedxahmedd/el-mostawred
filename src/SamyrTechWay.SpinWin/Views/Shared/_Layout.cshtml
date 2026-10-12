@@ -1,0 +1,85 @@
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@{
+    var signedIn = User.HasClaim(AppClaims.Role, AppClaims.CustomerRole);
+    var showSound = ViewData["ShowSound"] is true;
+    var returnUrl = Context.Request.Path + Context.Request.QueryString;
+    var csrf = Antiforgery.GetAndStoreTokens(Context).RequestToken;
+}
+<!DOCTYPE html>
+<html lang="@T.Lang" dir="@T.Dir">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b090d" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="csrf-token" content="@csrf" />
+    <meta name="description" content="@T["brand.headline.local"]" />
+    <title>@(ViewData["Title"] is string title ? $"{title} · " : "")SAMYR TECH WAY — Spin & Win</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="~/assets/brand/derived/logo-32.png" />
+    <link rel="apple-touch-icon" href="~/assets/brand/derived/logo-180.png" />
+    <link rel="preload" href="~/lib/fonts/outfit-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+    @if (T.IsArabic)
+    {
+        <link rel="preload" href="~/lib/fonts/cairo-arabic-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+    }
+    <link rel="stylesheet" href="~/css/brand.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    @await RenderSectionAsync("Head", required: false)
+</head>
+<body class="site @ViewData["BodyClass"]">
+    <a class="skip-link" href="#main">@T["nav.skip"]</a>
+    <canvas class="ambient-canvas" id="ambient" aria-hidden="true"></canvas>
+    <div class="ambient-grain" aria-hidden="true"></div>
+    <div class="site-shell">
+        <partial name="_InsecureBanner" model="T" />
+        <header class="site-header">
+            <a class="brand-link" href="@(signedIn ? "/play" : "/")" aria-label="SAMYR TECH WAY">
+                <span class="logo-plaque logo-plaque--mark"><img src="~/assets/brand/derived/logo-180.png" alt="" width="48" height="48" /></span>
+                <span class="brand-word"><strong>SAMYR TECH WAY</strong><span>Spin &amp; Win</span></span>
+            </a>
+            <div class="header-actions">
+                @if (showSound)
+                {
+                    <button type="button" class="chip-btn" id="sound-toggle" aria-pressed="true" data-label-on="@T["nav.sound.on"]" data-label-off="@T["nav.sound.off"]">
+                        <svg class="icon icon-on" aria-hidden="true"><use href="/assets/icons/ui.svg#i-volume-2"></use></svg>
+                        <svg class="icon icon-off" aria-hidden="true"><use href="/assets/icons/ui.svg#i-volume-x"></use></svg>
+                        <span class="chip-label">@T["nav.sound.on"]</span>
+                    </button>
+                }
+                @if (signedIn)
+                {
+                    @if (ViewData["Nav"] as string == "prizes")
+                    {
+                        <a class="chip-btn" href="/play"><partial name="_Icon" model="@("dices")" /><span class="chip-label">@T["nav.play"]</span></a>
+                    }
+                    else
+                    {
+                        <a class="chip-btn" href="/my-prizes"><partial name="_Icon" model="@("trophy")" /><span class="chip-label">@T["nav.prizes"]</span></a>
+                    }
+                }
+                <form method="post" asp-antiforgery="true" action="/lang">
+                    <input type="hidden" name="lang" value="@T.OtherLang" />
+                    <input type="hidden" name="returnUrl" value="@returnUrl" />
+                    <button type="submit" class="chip-btn keep-label" lang="@T.OtherLang" aria-label="@T["nav.lang.aria"]"><partial name="_Icon" model="@("languages")" /><span class="chip-label">@T["nav.lang"]</span></button>
+                </form>
+                @if (signedIn)
+                {
+                    <form method="post" asp-antiforgery="true" action="/logout">
+                        <button type="submit" class="chip-btn" aria-label="@T["nav.logout"]"><partial name="_Icon" model="@("log-out")" /><span class="chip-label">@T["nav.logout"]</span></button>
+                    </form>
+                }
+            </div>
+        </header>
+        <main id="main" class="site-main" tabindex="-1">
+            @RenderBody()
+        </main>
+        <footer class="site-footer">
+            <span>© @DateTime.UtcNow.Year @T["footer.rights"]</span>
+            <span>@T["footer.note"]</span>
+        </footer>
+    </div>
+    <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+    <script type="module" src="~/js/app/ambient.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,134 @@
+@model PlayViewModel
+@{
+    ViewData["Title"] = T["nav.play"];
+    ViewData["BodyClass"] = "page-play";
+    ViewData["ShowSound"] = true;
+    var data = new
+    {
+        lang = T.Lang,
+        status = Model.Status.ToString(),
+        credits = Model.Credits,
+        soundDefault = Model.SoundDefault,
+        spin = new { minMs = Model.SpinMinMs, maxMs = Model.SpinMaxMs, intensity = Model.Intensity },
+        strings = T.ForClient("play.", "result.", "share.", "nav.sound", "prizes.status"),
+    };
+}
+<section class="play" id="play" data-status="@Model.Status">
+    <div class="play-head">
+        <h1 class="greeting">@T.Format("play.greeting", Model.FirstName)<small>@T["brand.kicker"]</small></h1>
+        <div class="credit-pill" id="credit-pill" data-zero="@(Model.Credits <= 0 ? "true" : "false")" aria-live="polite">
+            <span class="credit-gem num" id="credit-count">@Model.Credits</span>
+            <span class="credit-label"><strong>@T["play.credits"]</strong>@if (T.IsArabic) { <span class="latin">SPIN CREDITS</span> }</span>
+        </div>
+    </div>
+
+    @if (Model.Announcement is not null)
+    {
+        <div class="alert alert-info announcement"><partial name="_Icon" model="@("sparkles")" /><span>@Model.Announcement</span></div>
+    }
+
+    <div class="stage">
+        <div class="wheel @(Model.Status != PlayStatus.Ready ? "is-dimmed" : "")" id="wheel" dir="ltr" role="group" aria-label="@T["play.legend.title"]">
+            <div class="wheel-glow" aria-hidden="true"></div>
+            <div class="wheel-halo" aria-hidden="true"></div>
+            <div class="wheel-disc" id="wheel-disc" aria-hidden="true"></div>
+            <svg class="wheel-frame" id="wheel-frame" viewBox="-500 -500 1000 1000" aria-hidden="true"></svg>
+            <div class="wheel-pointer" id="wheel-pointer" aria-hidden="true">
+                <svg viewBox="0 0 100 130">
+                    <defs>
+                        <linearGradient id="ptr-gold" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0" stop-color="#fff4cf" /><stop offset=".35" stop-color="#ffcf66" /><stop offset=".7" stop-color="#d98a12" /><stop offset="1" stop-color="#8a540a" />
+                        </linearGradient>
+                        <radialGradient id="ptr-gem" cx=".4" cy=".35" r=".7">
+                            <stop offset="0" stop-color="#ffd0b0" /><stop offset=".35" stop-color="#ff5a1f" /><stop offset=".75" stop-color="#b30a0c" /><stop offset="1" stop-color="#4d0205" />
+                        </radialGradient>
+                    </defs>
+                    <path d="M50 128 C34 92 10 70 10 44 A40 40 0 0 1 90 44 C90 70 66 92 50 128Z" fill="url(#ptr-gold)" stroke="#5a3204" stroke-width="2.5" />
+                    <path d="M50 116 C38 88 20 70 20 45 A30 30 0 0 1 80 45 C80 70 62 88 50 116Z" fill="none" stroke="rgba(255,250,230,.55)" stroke-width="2" />
+                    <circle cx="50" cy="44" r="17" fill="url(#ptr-gem)" stroke="#fff1c2" stroke-width="3" />
+                    <ellipse cx="44" cy="38" rx="6" ry="4" fill="rgba(255,255,255,.7)" />
+                </svg>
+            </div>
+            <button type="button" class="spin-btn" id="spin-btn" aria-label="@T["play.spin.aria"]" @(Model.Status != PlayStatus.Ready ? "disabled" : "")>
+                <span class="spin-label">@T["play.spin"]</span>
+                <small class="spin-sub">@T["play.spin.sub"]</small>
+            </button>
+            <div class="wheel-skeleton" id="wheel-skeleton">
+                <div><span class="spinner" aria-hidden="true"></span>@T["play.loading"]</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="cta-area" id="cta-area">
+        <p class="cta-hint" id="cta-hint" @(Model.Status != PlayStatus.Ready ? "hidden" : "")><partial name="_Icon" model="@("shield-check")" /> @T["play.hint"]</p>
+        <div class="state-card panel" id="state-card" @(Model.Status == PlayStatus.Ready ? "hidden" : "") role="status">
+            <span class="state-icon" id="state-icon"><partial name="_Icon" model="@(Model.Status == PlayStatus.NoCredits ? "badge-check" : "circle-pause")" /></span>
+            <h2 id="state-title">@(Model.Status switch { PlayStatus.NoCredits => T["play.nocredits.title"], PlayStatus.Paused => T["play.paused.title"], _ => T["play.unavailable.title"] })</h2>
+            <p id="state-body">@(Model.Status switch { PlayStatus.NoCredits => T["play.nocredits.body"], PlayStatus.Paused => Model.PausedMessage, _ => T["play.unavailable.body"] })</p>
+            <div id="state-actions">
+                @if (Model.Status == PlayStatus.NoCredits)
+                {
+                    <a class="btn btn-sm" href="/my-prizes"><partial name="_Icon" model="@("trophy")" /> @T["nav.prizes"]</a>
+                }
+            </div>
+        </div>
+        <div class="alert alert-error" id="net-error" role="alert" hidden>
+            <partial name="_Icon" model="@("wifi-off")" />
+            <div style="display:grid;gap:10px;justify-items:start">
+                <span id="net-error-text">@T["play.offline"]</span>
+                <button type="button" class="btn btn-sm" id="net-retry"><partial name="_Icon" model="@("refresh-cw")" /> @T["play.retry"]</button>
+            </div>
+        </div>
+    </div>
+
+    <details class="legend disclosure" id="legend">
+        <summary><span><partial name="_Icon" model="@("list")" /> @T["play.legend.toggle"]</span><partial name="_Icon" model="@("chevron-down")" /></summary>
+        <div class="disclosure-body">
+            <ul class="legend-list" id="legend-list"></ul>
+            <p class="legend-note">@T["play.legend.note"]</p>
+        </div>
+    </details>
+
+    <div class="latest-award" id="latest-award">
+        @if (Model.LatestAward is not null)
+        {
+            <p class="kicker" style="margin-bottom:10px">@T["play.last"]</p>
+            <partial name="_AwardCard" model="Model.LatestAward" />
+        }
+    </div>
+</section>
+
+<dialog class="reveal" id="reveal" aria-labelledby="reveal-title" aria-describedby="reveal-body">
+    <canvas class="reveal-fx" id="reveal-fx" aria-hidden="true"></canvas>
+    <div class="reveal-beams" aria-hidden="true"></div>
+    <div class="reveal-stage">
+        <div class="reveal-card panel" id="reveal-card">
+            <div class="reveal-tier" id="reveal-tier"></div>
+            <div class="prize-medal" id="reveal-medal" aria-hidden="true"></div>
+            <p class="reveal-kicker" id="reveal-kicker"></p>
+            <h2 class="reveal-title" id="reveal-title"></h2>
+            <p class="reveal-name" id="reveal-name"></p>
+            <p class="reveal-body" id="reveal-body"></p>
+            <div class="reveal-pickup" id="reveal-pickup" hidden>
+                <h3><partial name="_Icon" model="@("store")" /> @T["result.pickup"]</h3>
+                <p id="reveal-pickup-text"></p>
+            </div>
+            <p class="reveal-credits" id="reveal-credits"></p>
+            <div class="reveal-actions" id="reveal-actions">
+                <button type="button" class="btn btn-primary" id="reveal-again" hidden><partial name="_Icon" model="@("rotate-ccw")" /> @T["result.retry.cta"]</button>
+                <button type="button" class="btn btn-gold" id="reveal-share" hidden><partial name="_Icon" model="@("share-2")" /> @T["result.share"]</button>
+                <a class="btn" id="reveal-history" href="/my-prizes" hidden><partial name="_Icon" model="@("trophy")" /> @T["result.history"]</a>
+                <button type="button" class="btn btn-ghost" id="reveal-done">@T["result.done"]</button>
+            </div>
+        </div>
+    </div>
+</dialog>
+
+<partial name="_ShareDialog" />
+<div class="sr-only" id="announcer" aria-live="assertive"></div>
+<script type="application/json" id="play-data">@Json.Serialize(data)</script>
+
+@section Scripts {
+    <script src="~/lib/gsap/gsap.min.js" asp-append-version="true" defer></script>
+    <script type="module" src="~/js/app/play.js" asp-append-version="true"></script>
+}

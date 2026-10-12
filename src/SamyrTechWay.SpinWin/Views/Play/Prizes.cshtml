@@ -1,0 +1,51 @@
+@model MyPrizesViewModel
+@{
+    ViewData["Title"] = T["prizes.title"];
+    ViewData["Nav"] = "prizes";
+    var data = new { lang = T.Lang, strings = T.ForClient("share.") };
+}
+<header class="page-head">
+    <p class="kicker">@T.Format("play.greeting", Model.FirstName)</p>
+    <h1><span class="text-gold">@T["prizes.title"]</span></h1>
+    <p class="lead">@T["prizes.lead"]</p>
+</header>
+
+@if (Model.Awards.Count == 0)
+{
+    <div class="panel empty-state">
+        <span class="state-icon"><partial name="_Icon" model="@("gift")" /></span>
+        <p class="lead">@T["prizes.empty"]</p>
+        <a class="btn btn-primary" href="/play"><partial name="_Icon" model="@("dices")" /> @T["prizes.back"]</a>
+    </div>
+}
+else
+{
+    <div class="prize-grid">
+        @foreach (var award in Model.Awards)
+        {
+            <partial name="_AwardCard" model="award" />
+        }
+    </div>
+}
+
+@if (Model.Attempts.Count > 0)
+{
+    <section class="history" aria-labelledby="history-title">
+        <h2 id="history-title">@T["prizes.history"]</h2>
+        <ul class="history-list">
+            @foreach (var a in Model.Attempts)
+            {
+                <li>
+                    <span><span class="badge @(a.Kind == "Won" ? "badge-flame" : "badge-muted")">@T[$"prizes.attempt.{a.Kind}"]</span> @a.Name</span>
+                    <time datetime="@a.CreatedAtUtc.ToString("O")">@a.When</time>
+                </li>
+            }
+        </ul>
+    </section>
+}
+
+<partial name="_ShareDialog" />
+<script type="application/json" id="page-data">@Json.Serialize(data)</script>
+@section Scripts {
+    <script type="module" src="~/js/app/prizes.js" asp-append-version="true"></script>
+}

@@ -1,0 +1,115 @@
+@model LandingViewModel
+@{
+    ViewData["BodyClass"] = "page-landing";
+}
+<div class="landing">
+    <section class="hero" aria-labelledby="headline">
+        <div class="hero-logo">
+            <div class="glow" aria-hidden="true"></div>
+            <div class="halo" aria-hidden="true"></div>
+            <div class="logo-plaque">
+                <img src="~/assets/brand/derived/logo-640.png"
+                     srcset="/assets/brand/derived/logo-640.png 640w, /assets/brand/samyr-tech-way-logo.png 1254w"
+                     sizes="(min-width: 960px) 340px, 46vw"
+                     alt="SAMYR TECH WAY — EL-MOSTAWRYD, Laptop Trading" width="640" height="640" fetchpriority="high" />
+            </div>
+        </div>
+        <p class="kicker">@T["brand.kicker"]</p>
+        <h1 class="headline" id="headline" lang="en" dir="ltr">
+            <span>Your purchase.</span>
+            <span>Your moment.</span>
+            <span class="text-gold">Your reward.</span>
+        </h1>
+        @if (T.IsArabic)
+        {
+            <p class="headline-ar">@T["brand.headline.local"]</p>
+        }
+        <p class="lead">@Model.Subheading</p>
+        @if (Model.Announcement is not null)
+        {
+            <div class="alert alert-info"><partial name="_Icon" model="@("sparkles")" /><span>@Model.Announcement</span></div>
+        }
+    </section>
+
+    <section class="login-card panel" aria-labelledby="login-title">
+        @if (Model.SignedInFirstName is not null)
+        {
+            <div class="welcome-back">
+                <h2 id="login-title">@T.Format("play.greeting", Model.SignedInFirstName)</h2>
+                <p class="lead">@T.Format("login.signedin", Model.SignedInFirstName)</p>
+                <a class="btn btn-primary btn-block" href="/play">@T["login.continue"] <partial name="_Icon" model="@(T.IsArabic ? "arrow-left" : "arrow-right")" /></a>
+            </div>
+        }
+        else
+        {
+            <h2 id="login-title">@T["login.title"]</h2>
+            <p class="lead">@T["login.lead"]</p>
+            <form method="post" asp-antiforgery="true" action="/login" id="login-form" novalidate>
+                @if (Model.Error is not null)
+                {
+                    <div class="alert alert-error" role="alert" id="login-error" tabindex="-1"><partial name="_Icon" model="@("triangle-alert")" /><span>@Model.Error</span></div>
+                }
+                <input type="hidden" name="ReturnUrl" value="@Model.Form.ReturnUrl" />
+                <div class="field" style="margin-top:18px">
+                    <label class="label" for="phone">@T["login.phone"]</label>
+                    <div class="input-group" dir="ltr">
+                        <span class="input-affix" aria-hidden="true">+20</span>
+                        <input class="input phone-input" id="phone" name="Phone" type="tel" inputmode="tel" autocomplete="tel-national"
+                               required maxlength="20" placeholder="010 1234 5678" value="@Model.Form.Phone"
+                               aria-describedby="phone-hint phone-error" aria-invalid="@(Model.Error is not null ? "true" : "false")" />
+                    </div>
+                    <span class="hint" id="phone-hint">@T["login.phone.hint"] <bdi dir="ltr">010 1234 5678</bdi></span>
+                    <span class="field-error" id="phone-error" hidden data-message="@T["login.error.phone"]"></span>
+                </div>
+                <div class="field">
+                    <label class="label" for="code">@T["login.code"]</label>
+                    <div class="input-group" dir="ltr">
+                        <input class="input code-input has-action" id="code" name="AccessCode" type="password" autocomplete="off" autocapitalize="characters"
+                               autocorrect="off" spellcheck="false" required maxlength="14" placeholder="ABCDE-23456"
+                               aria-describedby="code-hint code-error" />
+                        <button type="button" class="input-action" id="code-toggle" aria-pressed="false"
+                                aria-label="@T["login.code.show"]" data-show="@T["login.code.show"]" data-hide="@T["login.code.hide"]">
+                            <svg class="icon" aria-hidden="true"><use href="/assets/icons/ui.svg#i-eye"></use></svg>
+                        </button>
+                    </div>
+                    <span class="hint" id="code-hint">@T["login.code.hint"] <bdi dir="ltr">ABCDE-23456</bdi></span>
+                    <span class="field-error" id="code-error" hidden data-message="@T["login.error.code"]"></span>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block" id="login-submit">
+                    <span class="btn-label-idle">@T["login.submit"]</span>
+                    <span class="spinner" aria-hidden="true"></span>
+                    <span class="btn-label-busy">@T["login.submitting"]</span>
+                </button>
+                <p class="login-note"><partial name="_Icon" model="@("shield-check")" /><span>@T["login.noaccount"]</span></p>
+            </form>
+        }
+    </section>
+</div>
+
+<section class="steps" aria-label="@T["brand.kicker"]">
+    <div class="step"><span class="step-icon"><partial name="_Icon" model="@("store")" /></span><div><b>01</b>@T["login.steps.1"]</div></div>
+    <div class="step"><span class="step-icon"><partial name="_Icon" model="@("key-round")" /></span><div><b>02</b>@T["login.steps.2"]</div></div>
+    <div class="step"><span class="step-icon"><partial name="_Icon" model="@("gift")" /></span><div><b>03</b>@T["login.steps.3"]</div></div>
+</section>
+
+<section class="fineprint">
+    <details class="disclosure">
+        <summary>@T["terms.title"] <partial name="_Icon" model="@("chevron-down")" /></summary>
+        <div class="disclosure-body">
+            <ul>
+                <li>@T["terms.1"]</li>
+                <li>@T["terms.2"]</li>
+                <li>@T["terms.3"]</li>
+                <li>@T["terms.4"]</li>
+            </ul>
+        </div>
+    </details>
+    <details class="disclosure">
+        <summary>@T["privacy.title"] <partial name="_Icon" model="@("chevron-down")" /></summary>
+        <div class="disclosure-body"><p>@T["privacy.body"]</p></div>
+    </details>
+</section>
+
+@section Scripts {
+    <script type="module" src="~/js/app/login.js" asp-append-version="true"></script>
+}

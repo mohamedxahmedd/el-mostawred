@@ -1,0 +1,7 @@
+@model Localizer
+@inject Microsoft.Extensions.Options.IOptions<SamyrTechWay.SpinWin.Options.SecurityOptions> Security
+@* Shown on every page while the site runs over plain HTTP with Security:RequireHttps=false (MonsterASP Free before HTTPS). *@
+@if (!Context.Request.IsHttps && !Security.Value.RequireHttps)
+{
+    <div class="insecure-banner" role="alert"><partial name="_Icon" model="@("triangle-alert")" /> <span>@Model["insecure.banner"]</span></div>
+}

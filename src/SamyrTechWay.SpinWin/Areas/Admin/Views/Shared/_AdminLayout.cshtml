@@ -1,0 +1,79 @@
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@{
+    var section = ViewData["Section"] as string ?? "";
+    var name = User.FindFirst(AppClaims.DisplayName)?.Value ?? "Admin";
+    var csrf = Antiforgery.GetAndStoreTokens(Context).RequestToken;
+    string Current(string s) => s == section ? "page" : "false";
+    var nav = new (string Key, string Href, string Icon, string Label)[]
+    {
+        ("dashboard", "/admin", "layout-dashboard", "Dashboard"),
+        ("customers", "/admin/customers", "users", "Customers"),
+        ("prizes", "/admin/prizes", "gift", "Prizes & odds"),
+        ("spins", "/admin/spins", "dices", "Spin attempts"),
+        ("awards", "/admin/awards", "package", "Awards"),
+        ("settings", "/admin/settings", "settings", "Settings"),
+        ("audit", "/admin/audit", "scroll-text", "Audit log"),
+    };
+}
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0d0b0f" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="csrf-token" content="@csrf" />
+    <title>@ViewData["Title"] · Admin · SAMYR TECH WAY</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="~/assets/brand/derived/logo-32.png" />
+    <link rel="stylesheet" href="~/css/brand.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
+</head>
+<body class="admin">
+    <a class="skip-link" href="#admin-content">Skip to content</a>
+    <partial name="_InsecureBanner" model="@(new Localizer("en"))" />
+    <div class="admin-shell">
+        <nav class="sidebar" id="sidebar" aria-label="Admin">
+            <a class="sidebar-brand" href="/admin">
+                <span class="logo-plaque logo-plaque--mark"><img src="~/assets/brand/derived/logo-180.png" alt="" width="48" height="48" /></span>
+                <span><strong>SAMYR TECH WAY</strong><span>Spin &amp; Win admin</span></span>
+            </a>
+            @foreach (var n in nav)
+            {
+                <a class="nav-link" href="@n.Href" aria-current="@Current(n.Key)"><partial name="_Icon" model="@n.Icon" /> @n.Label</a>
+            }
+            <div class="sidebar-foot">
+                <a class="nav-link" href="/" target="_blank" rel="noopener"><partial name="_Icon" model="@("external-link")" /> Customer site</a>
+                <a class="nav-link" href="/admin/account/password" aria-current="@Current("password")"><partial name="_Icon" model="@("key-round")" /> Change password</a>
+                <form method="post" asp-antiforgery="true" action="/admin/logout">
+                    <button type="submit" class="nav-link"><partial name="_Icon" model="@("log-out")" /> Sign out</button>
+                </form>
+            </div>
+        </nav>
+        <div class="scrim" id="scrim" hidden></div>
+        <div class="admin-main">
+            <header class="topbar">
+                <button type="button" class="btn btn-ghost btn-icon menu-btn" id="menu-btn" aria-controls="sidebar" aria-expanded="false" aria-label="Open menu"><partial name="_Icon" model="@("menu")" /></button>
+                <h1>@ViewData["Title"]</h1>
+                <span class="who">Signed in as <strong>@name</strong></span>
+            </header>
+            <main class="admin-content" id="admin-content" tabindex="-1">
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+    <div class="toasts" id="toasts" role="status" aria-live="polite"
+         data-toast="@TempData["toast"]" data-toast-kind="@TempData["toastKind"]"></div>
+    <dialog class="modal" id="confirm-dialog" aria-labelledby="confirm-title">
+        <div class="panel modal-body confirm-body">
+            <h2 id="confirm-title">Are you sure?</h2>
+            <p class="muted" id="confirm-text"></p>
+            <div class="confirm-actions">
+                <button type="button" class="btn" value="cancel" id="confirm-cancel">Cancel</button>
+                <button type="button" class="btn btn-primary" value="ok" id="confirm-ok">Confirm</button>
+            </div>
+        </div>
+    </dialog>
+    <script type="module" src="~/js/admin/admin.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

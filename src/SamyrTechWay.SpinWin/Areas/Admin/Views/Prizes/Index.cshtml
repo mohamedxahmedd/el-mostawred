@@ -1,0 +1,147 @@
+@model PrizesViewModel
+@{
+    ViewData["Title"] = "Prizes & odds";
+    ViewData["Section"] = "prizes";
+    var odds = Model.Odds;
+}
+<div class="page-actions">
+    <h2>Wheel items</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <a class="btn btn-primary" href="/admin/prizes/create"><partial name="_Icon" model="@("plus")" /> Add prize</a>
+        <a class="btn" href="/admin/prizes/create?kind=TryAgain"><partial name="_Icon" model="@("rotate-ccw")" /> Add Try Again item</a>
+    </div>
+</div>
+
+@if (odds.Status == WheelStatus.InvalidAllocation)
+{
+    <div class="alert alert-error" role="alert"><partial name="_Icon" model="@("triangle-alert")" /><span><strong>Spins are blocked:</strong> active weights total @WheelItemAdminService.Percent(odds.ConfiguredTotal). Set them to exactly 100.00% below.</span></div>
+}
+else if (odds.Status == WheelStatus.NoEligiblePrize)
+{
+    <div class="alert alert-error" role="alert"><partial name="_Icon" model="@("triangle-alert")" /><span><strong>Spins are blocked:</strong> no real prize is in stock and active. Restock or activate a prize. (Try Again alone never runs the wheel.)</span></div>
+}
+
+<div class="grid-2">
+    <form class="card" method="post" asp-antiforgery="true" action="/admin/prizes/allocation" id="allocation-form" novalidate data-busy-form>
+        <div class="card-head">
+            <h2>Probability allocation</h2>
+            <span class="hint">Configured weights of active items must total 100.00%</span>
+        </div>
+        <div class="alloc-total" id="alloc-total" data-valid="@(odds.ConfiguredTotal == WheelOdds.FullAllocation ? "true" : "false")">
+            <span class="muted">Active total</span>
+            <strong id="alloc-sum">@WheelItemAdminService.Percent(odds.ConfiguredTotal)</strong>
+            <span class="alloc-bar" aria-hidden="true"><span id="alloc-bar" style="width:@Math.Min(100, odds.ConfiguredTotal / 100.0).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)%"></span></span>
+            <span class="hint" id="alloc-msg" aria-live="polite"></span>
+        </div>
+        <div class="table-wrap" style="margin-top:14px">
+            <table class="data stack">
+                <thead><tr><th>Item</th><th>Active</th><th class="num">Weight %</th><th class="num">Effective now</th><th class="num">Stock</th><th class="num">Order</th><th></th></tr></thead>
+                <tbody>
+                    @for (var i = 0; i < Model.Live.Count; i++)
+                    {
+                        var row = Model.Live[i];
+                        var it = row.Item;
+                        <tr>
+                            <td data-label="Item">
+                                <input type="hidden" name="Rows[@i].Id" value="@it.Id" />
+                                <div class="item-cell">
+                                    <span class="thumb">
+                                        @if (it.ImageId is not null) { <img src="@WheelPresenter.ImageUrl(it.ImageId)" alt="" loading="lazy" /> }
+                                        else { <svg class="icon icon-lg"><use href="/assets/icons/ui.svg#p-@WheelPresenter.Icon(it.IconKey, it.Kind)"></use></svg> }
+                                    </span>
+                                    <span>
+                                        <a class="strong" href="/admin/prizes/@it.Id/edit">@it.NameEn</a>
+                                        <small>@(it.Kind == WheelItemKind.TryAgain ? "Try Again · refunds the credit" : it.CelebrationTier.ToString())@(it.NameAr is null ? "" : $" · {it.NameAr}")</small>
+                                    </span>
+                                </div>
+                            </td>
+                            <td data-label="Active">
+                                <label class="check"><input type="checkbox" name="Rows[@i].IsActive" value="true" @(it.IsActive ? "checked" : "") data-alloc-active /><span class="switch" aria-hidden="true"></span><span class="sr-only">Active</span></label>
+                                <input type="hidden" name="Rows[@i].IsActive" value="false" />
+                            </td>
+                            <td data-label="Weight %" class="num">
+                                <input class="input pct-input" name="Rows[@i].Percent" type="number" min="0" max="100" step="0.01" inputmode="decimal"
+                                       value="@((it.ProbabilityBasisPoints / 100m).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture))" data-alloc-pct aria-label="Weight percent for @it.NameEn" />
+                            </td>
+                            <td data-label="Effective now" class="num">
+                                @if (row.Eligible) { <span class="strong">@WheelPresenter.FormatPercent(row.EffectiveProbability)</span> }
+                                else if (it.IsActive && !(it.Kind == WheelItemKind.TryAgain || it.StockQuantity is null || it.StockQuantity > 0)) { <span class="badge badge-bad">Sold out</span> }
+                                else { <span class="dim">—</span> }
+                            </td>
+                            <td data-label="Stock" class="num">
+                                @if (it.Kind == WheelItemKind.TryAgain) { <span class="dim">n/a</span> }
+                                else if (it.StockQuantity is null) { <span class="dim">Unlimited</span> }
+                                else { <span class="@(row.LowStock ? "badge badge-warn" : "")">@it.StockQuantity</span> }
+                            </td>
+                            <td data-label="Order" class="num"><input class="input order-input" name="Rows[@i].DisplayOrder" type="number" min="0" max="999" value="@it.DisplayOrder" aria-label="Display order for @it.NameEn" /></td>
+                            <td data-label="">
+                                <a class="btn btn-xs" href="/admin/prizes/@it.Id/edit" aria-label="Edit @it.NameEn"><partial name="_Icon" model="@("pencil")" /></a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (Model.Live.Count == 0)
+        {
+            <p class="empty">No wheel items yet. Add prizes, then activate them here.</p>
+        }
+        else
+        {
+            <div class="form-actions" style="margin-top:14px">
+                <button type="submit" class="btn btn-primary" id="alloc-save"><partial name="_Icon" model="@("check")" /> Save allocation</button>
+            </div>
+        }
+    </form>
+
+    <section class="card" aria-labelledby="preview-title">
+        <div class="card-head"><h2 id="preview-title">Live wheel preview</h2><span class="hint">Effective odds after stock filtering</span></div>
+        @if (Model.Preview.Count == 0)
+        {
+            <p class="empty">The wheel is not spinnable yet, so there is nothing to preview.</p>
+        }
+        else
+        {
+            <div class="preview-wheel" dir="ltr">
+                <div class="wheel-disc" id="preview-disc"></div>
+                <svg class="wheel-frame" id="preview-frame" viewBox="-500 -500 1000 1000" aria-hidden="true"></svg>
+                <svg class="preview-pointer" viewBox="0 0 100 130" aria-hidden="true"><path d="M50 128 C34 92 10 70 10 44 A40 40 0 0 1 90 44 C90 70 66 92 50 128Z" fill="#ffd06b" stroke="#5a3204" stroke-width="3" /><circle cx="50" cy="44" r="16" fill="#d01518" stroke="#fff1c2" stroke-width="3" /></svg>
+            </div>
+            <ul class="legend-list" style="list-style:none;padding:0;margin:14px 0 0;display:grid;gap:6px">
+                @foreach (var p in Model.Preview)
+                {
+                    <li style="display:flex;justify-content:space-between;gap:10px;font-size:14px"><span><span class="badge swatch-@p.Color" style="width:12px;height:12px;padding:0;border-radius:4px"></span> @p.Name</span><span class="strong">@p.Percent</span></li>
+                }
+            </ul>
+            <script type="application/json" id="preview-data">@Json.Serialize(Model.Preview)</script>
+        }
+    </section>
+</div>
+
+@if (Model.Archived.Count > 0)
+{
+    <section class="card">
+        <div class="card-head"><h2>Archived</h2><span class="hint">Kept for history; never on the wheel</span></div>
+        <div class="table-wrap">
+            <table class="data stack">
+                <thead><tr><th>Item</th><th class="num">Wins</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var row in Model.Archived)
+                    {
+                        <tr>
+                            <td data-label="Item">@row.Item.NameEn <span class="dim">(@row.Item.Kind)</span></td>
+                            <td data-label="Wins" class="num">@row.Wins</td>
+                            <td data-label="">
+                                <form method="post" asp-antiforgery="true" action="/admin/prizes/@row.Item.Id/restore"><button type="submit" class="btn btn-xs"><partial name="_Icon" model="@("archive-restore")" /> Restore</button></form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+}
+
+@section Scripts {
+    <script type="module" src="~/js/admin/prizes.js" asp-append-version="true"></script>
+}

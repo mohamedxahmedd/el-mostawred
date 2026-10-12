@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#0b090d" />
+    <title>@ViewData["Title"] · SAMYR TECH WAY Admin</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="~/assets/brand/derived/logo-32.png" />
+    <link rel="stylesheet" href="~/css/brand.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
+</head>
+<body class="admin">
+    <partial name="_InsecureBanner" model="@(new Localizer("en"))" />
+    <main class="auth-page">@RenderBody()</main>
+</body>
+</html>

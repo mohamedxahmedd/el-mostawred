@@ -1,0 +1,51 @@
+@model SpinListViewModel
+@{
+    ViewData["Title"] = "Spin attempts";
+    ViewData["Section"] = "spins";
+    var f = Model.Filter;
+    string PageUrl(int p) => $"/admin/spins?Q={Uri.EscapeDataString(f.Q ?? "")}&Kind={f.Kind}&From={f.From:yyyy-MM-dd}&To={f.To:yyyy-MM-dd}&Page={p}";
+}
+<form class="filters card" method="get" action="/admin/spins" role="search">
+    <div class="field grow"><label class="label" for="q">Search</label><input class="input" id="q" name="Q" value="@f.Q" placeholder="Customer, phone, invoice, item or reference ID" /></div>
+    <div class="field">
+        <label class="label" for="kind">Result</label>
+        <select class="select" id="kind" name="Kind">
+            <option value="all" selected="@(f.Kind is null or "all")">All</option>
+            <option value="won" selected="@(f.Kind == "won")">Won</option>
+            <option value="tryagain" selected="@(f.Kind == "tryagain")">Try Again</option>
+        </select>
+    </div>
+    <div class="field"><label class="label" for="from">From</label><input class="input" id="from" name="From" type="date" value="@f.From?.ToString("yyyy-MM-dd")" /></div>
+    <div class="field"><label class="label" for="to">To</label><input class="input" id="to" name="To" type="date" value="@f.To?.ToString("yyyy-MM-dd")" /></div>
+    <button type="submit" class="btn"><partial name="_Icon" model="@("filter")" /> Apply</button>
+</form>
+<section class="card">
+    <p class="hint" style="margin-bottom:12px"><partial name="_Icon" model="@("lock")" /> Spin outcomes are permanent records and cannot be edited. Dates are Egypt time.</p>
+    @if (Model.Result.Items.Count == 0)
+    {
+        <p class="empty">No spins match these filters.</p>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table class="data stack">
+                <thead><tr><th>Time</th><th>Customer</th><th>Invoice</th><th>Item</th><th>Result</th><th class="num">Credits</th><th>Reference</th></tr></thead>
+                <tbody>
+                    @foreach (var s in Model.Result.Items)
+                    {
+                        <tr>
+                            <td data-label="Time" class="mono">@CairoTime.Format(s.CreatedAtUtc, "dd MMM yyyy HH:mm:ss")</td>
+                            <td data-label="Customer"><a href="/admin/customers/@s.CustomerId">@s.CustomerName</a></td>
+                            <td data-label="Invoice">@(s.Invoice ?? "—")</td>
+                            <td data-label="Item">@s.ItemName</td>
+                            <td data-label="Result"><span class="badge @(s.Kind == SpinResultKind.Won ? "badge-flame" : "badge-muted")">@(s.Kind == SpinResultKind.Won ? "Won" : "Try Again")</span></td>
+                            <td data-label="Credits" class="num mono">@s.CreditsBefore → @s.CreditsAfter</td>
+                            <td data-label="Reference" class="mono"><a href="/admin/spins/@s.Id">@s.Id.ToString()[..8]…</a></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div style="margin-top:14px"><partial name="_Pager" model="(Model.Result.Page, Model.Result.Pages, Model.Result.Total, (Func<int, string>)PageUrl)" /></div>
+    }
+</section>

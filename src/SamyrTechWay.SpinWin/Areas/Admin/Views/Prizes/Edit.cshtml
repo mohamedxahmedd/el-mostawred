@@ -1,0 +1,120 @@
+@model WheelItemForm
+@{
+    var isNew = Model.Id is null;
+    var retry = Model.Kind == WheelItemKind.TryAgain;
+    ViewData["Title"] = isNew ? (retry ? "New Try Again item" : "New prize") : $"Edit {Model.NameEn}";
+    ViewData["Section"] = "prizes";
+    var action = isNew ? "/admin/prizes/create" : $"/admin/prizes/{Model.Id}/edit";
+}
+<form class="card" method="post" asp-antiforgery="true" action="@action" enctype="multipart/form-data" novalidate data-busy-form>
+    <input type="hidden" asp-for="RowVersion" />
+    <input type="hidden" asp-for="Kind" />
+    <div asp-validation-summary="ModelOnly" class="alert alert-error" role="alert" style="margin-bottom:16px"></div>
+    @if (retry)
+    {
+        <p class="alert alert-info" style="margin-bottom:16px"><partial name="_Icon" model="@("info")" /><span>Try Again is not a gift. When it lands, the spent credit is refunded in the same transaction and the customer can spin again. It has no stock and creates no award. Only one Try Again item can be active.</span></p>
+    }
+    <div class="form-grid">
+        <p class="section-title span-2">Name &amp; description</p>
+        <div class="field"><label class="label" asp-for="NameEn"></label><input class="input" asp-for="NameEn" /><span class="field-error" asp-validation-for="NameEn"></span></div>
+        <div class="field"><label class="label" asp-for="NameAr"></label><input class="input" asp-for="NameAr" dir="rtl" lang="ar" /><span class="field-error" asp-validation-for="NameAr"></span></div>
+        <div class="field"><label class="label" asp-for="DescriptionEn"></label><input class="input" asp-for="DescriptionEn" /><span class="field-error" asp-validation-for="DescriptionEn"></span></div>
+        <div class="field"><label class="label" asp-for="DescriptionAr"></label><input class="input" asp-for="DescriptionAr" dir="rtl" lang="ar" /><span class="field-error" asp-validation-for="DescriptionAr"></span></div>
+
+        <p class="section-title span-2">Odds &amp; availability</p>
+        <div class="field">
+            <label class="label" asp-for="WeightPercent"></label>
+            <input class="input" asp-for="WeightPercent" type="number" min="0" max="100" step="0.01" inputmode="decimal" />
+            <span class="hint">Saving an active item requires all active weights to total 100.00%. For bigger changes use the allocation table.</span>
+            <span class="field-error" asp-validation-for="WeightPercent"></span>
+        </div>
+        <div class="field">
+            <label class="label" asp-for="DisplayOrder"></label>
+            <input class="input" asp-for="DisplayOrder" type="number" min="0" max="999" />
+            <span class="field-error" asp-validation-for="DisplayOrder"></span>
+        </div>
+        @if (!retry)
+        {
+            <div class="field">
+                <label class="label" asp-for="StockQuantity"></label>
+                <input class="input" asp-for="StockQuantity" type="number" min="0" placeholder="Unlimited" />
+                <span class="hint">Reserved the moment a customer wins. At 0 the prize leaves the wheel automatically.</span>
+                <span class="field-error" asp-validation-for="StockQuantity"></span>
+            </div>
+            <div class="field">
+                <label class="label" asp-for="LowStockThreshold"></label>
+                <input class="input" asp-for="LowStockThreshold" type="number" min="0" max="1000" />
+                <span class="field-error" asp-validation-for="LowStockThreshold"></span>
+            </div>
+        }
+        <div class="field span-2">
+            <label class="check"><input type="checkbox" asp-for="IsActive" /><span class="switch" aria-hidden="true"></span> Active on the wheel</label>
+            <span class="field-error" asp-validation-for="IsActive"></span>
+        </div>
+
+        <p class="section-title span-2">Look &amp; reveal</p>
+        <div class="field span-2">
+            <span class="label">Image</span>
+            <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+                <div class="image-preview" id="image-preview">
+                    @if (Model.CurrentImageUrl is not null) { <img src="@Model.CurrentImageUrl" alt="Current image" /> }
+                    else { <span class="hint">No image</span> }
+                </div>
+                <div style="display:grid;gap:8px">
+                    <input class="input" asp-for="Image" type="file" accept="image/jpeg,image/png,image/webp" style="min-height:auto;padding:10px" />
+                    <span class="hint">JPEG, PNG or WebP up to 2 MB. Square photos look best. Without an image the icon is used.</span>
+                    @if (Model.CurrentImageUrl is not null)
+                    {
+                        <label class="check"><input type="checkbox" asp-for="RemoveImage" /><span class="switch" aria-hidden="true"></span> Remove current image</label>
+                    }
+                    <span class="field-error" asp-validation-for="Image"></span>
+                </div>
+            </div>
+        </div>
+        <fieldset class="field span-2" style="border:0;padding:0;margin:0">
+            <legend class="label" style="margin-bottom:8px">Built-in icon</legend>
+            <div class="icon-picker">
+                @foreach (var (key, label) in PrizeIcons.All)
+                {
+                    <label><input type="radio" name="IconKey" value="@key" @(Model.IconKey == key ? "checked" : "") /><span class="opt"><svg class="icon"><use href="/assets/icons/ui.svg#p-@key"></use></svg>@label</span></label>
+                }
+            </div>
+            <span class="field-error" asp-validation-for="IconKey"></span>
+        </fieldset>
+        <fieldset class="field span-2" style="border:0;padding:0;margin:0">
+            <legend class="label" style="margin-bottom:8px">Wedge colour</legend>
+            <div class="color-picker">
+                @foreach (var key in WheelItemAdminService.ColorKeys)
+                {
+                    <label><input type="radio" name="ColorKey" value="@key" @(Model.ColorKey == key ? "checked" : "") /><span class="sw"><i class="swatch-@key"></i>@key</span></label>
+                }
+            </div>
+        </fieldset>
+        @if (!retry)
+        {
+            <div class="field">
+                <label class="label" asp-for="Tier"></label>
+                <select class="select" asp-for="Tier">
+                    <option value="Standard">Standard — soft glow &amp; confetti</option>
+                    <option value="Rare">Rare — gold sparks, spotlight, chimes</option>
+                    <option value="Epic">Epic — phoenix fire burst, beams, fanfare</option>
+                </select>
+            </div>
+            <div></div>
+            <div class="field"><label class="label" asp-for="CollectionNoteEn"></label><textarea class="textarea" asp-for="CollectionNoteEn" rows="2" placeholder="Leave empty to use the default pickup instructions"></textarea></div>
+            <div class="field"><label class="label" asp-for="CollectionNoteAr"></label><textarea class="textarea" asp-for="CollectionNoteAr" rows="2" dir="rtl" lang="ar"></textarea></div>
+        }
+    </div>
+    <div class="form-actions" style="margin-top:20px">
+        @if (!isNew && !Model.IsActive)
+        {
+            <button type="submit" class="btn btn-danger" form="archive-form"><partial name="_Icon" model="@("archive")" /> Archive</button>
+        }
+        <a class="btn btn-ghost" href="/admin/prizes">Cancel</a>
+        <button type="submit" class="btn btn-primary">@(isNew ? "Create item" : "Save changes")</button>
+    </div>
+</form>
+@if (!isNew && !Model.IsActive)
+{
+    <form id="archive-form" method="post" asp-antiforgery="true" action="/admin/prizes/@Model.Id/archive" data-confirm="Archive this item? It leaves the admin list and the wheel, but all past spins and awards keep their record."></form>
+}
