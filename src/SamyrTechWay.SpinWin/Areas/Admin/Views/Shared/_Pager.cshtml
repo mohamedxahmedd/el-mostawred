@@ -1,14 +1,14 @@
 @model (int Page, int Pages, int Total, Func<int, string> Url)
-<nav class="pager" aria-label="Pagination">
-    <span>@Model.Total.ToString("N0") result@(Model.Total == 1 ? "" : "s") · page @Model.Page of @Model.Pages</span>
+<nav class="pager" aria-label="التنقل بين الصفحات">
+    <span>@Model.Total.ToString("N0") نتيجة · صفحة @Model.Page من @Model.Pages</span>
     <span class="pager-links">
         @if (Model.Page > 1)
         {
-            <a class="btn btn-sm" href="@Model.Url(Model.Page - 1)" rel="prev"><partial name="_Icon" model="@("chevron-left")" /> Previous</a>
+            <a class="btn btn-sm" href="@Model.Url(Model.Page - 1)" rel="prev"><partial name="_Icon" model="@("chevron-right")" /> السابق</a>
         }
         @if (Model.Page < Model.Pages)
         {
-            <a class="btn btn-sm" href="@Model.Url(Model.Page + 1)" rel="next">Next <partial name="_Icon" model="@("chevron-right")" /></a>
+            <a class="btn btn-sm" href="@Model.Url(Model.Page + 1)" rel="next">التالي <partial name="_Icon" model="@("chevron-left")" /></a>
         }
     </span>
 </nav>

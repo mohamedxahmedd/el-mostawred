@@ -27,7 +27,7 @@ public sealed class PrizesController(AdminQueries queries, WheelItemAdminService
             ModelState.AddModelError(result.Field ?? string.Empty, result.Error!);
             return View("Edit", form);
         }
-        Toast($"“{result.Value!.NameEn}” created{(result.Value.IsActive ? "" : " (inactive — activate it in the allocation table)")}.");
+        Toast($"تمت إضافة «{AdminText.Name(result.Value!.NameEn, result.Value.NameAr)}»{(result.Value.IsActive ? "" : " (غير مفعّل — فعّله من جدول توزيع النسب)")}.");
         return Redirect("/admin/prizes");
     }
 
@@ -60,8 +60,8 @@ public sealed class PrizesController(AdminQueries queries, WheelItemAdminService
             return View(form);
         }
         Toast(result.Value is int retryWeight
-            ? $"“{form.NameEn}” saved. Try Again was adjusted to {WheelItemAdminService.Percent(retryWeight)} to keep the wheel at 100%."
-            : $"“{form.NameEn}” saved.");
+            ? $"تم حفظ «{AdminText.Name(form.NameEn, form.NameAr)}». تم ضبط نسبة «حاول مرة أخرى» إلى {WheelItemAdminService.Percent(retryWeight)} ليبقى مجموع العجلة 100%."
+            : $"تم حفظ «{AdminText.Name(form.NameEn, form.NameAr)}».");
         return Redirect("/admin/prizes");
     }
 
@@ -70,12 +70,12 @@ public sealed class PrizesController(AdminQueries queries, WheelItemAdminService
     {
         if (form.Rows.Any(r => r.Percent * 100m != Math.Floor(r.Percent * 100m)))
         {
-            Toast("Weights can have at most two decimal places.", "error");
+            Toast("النسب تقبل رقمين عشريين بحد أقصى.", "error");
             return Redirect("/admin/prizes");
         }
         var rows = form.Rows.Select(r => new AllocationRow(r.Id, r.IsActive, (int)(r.Percent * 100m), r.DisplayOrder)).ToList();
         var result = await items.SaveAllocationAsync(rows, Actor, ct);
-        Toast(result.Ok ? "Probability allocation saved. The wheel now uses these odds." : result.Error!, result.Ok ? "success" : "error");
+        Toast(result.Ok ? "تم حفظ توزيع النسب. العجلة تعمل الآن بهذه النسب." : result.Error!, result.Ok ? "success" : "error");
         return Redirect("/admin/prizes");
     }
 
@@ -83,7 +83,7 @@ public sealed class PrizesController(AdminQueries queries, WheelItemAdminService
     public async Task<IActionResult> Archive(int id, CancellationToken ct)
     {
         var result = await items.ArchiveAsync(id, Actor, ct);
-        Toast(result.Ok ? "Item archived. Its history is preserved." : result.Error!, result.Ok ? "success" : "error");
+        Toast(result.Ok ? "تمت أرشفة العنصر مع الاحتفاظ بسجله." : result.Error!, result.Ok ? "success" : "error");
         return Redirect("/admin/prizes");
     }
 
@@ -91,13 +91,13 @@ public sealed class PrizesController(AdminQueries queries, WheelItemAdminService
     public async Task<IActionResult> Restore(int id, CancellationToken ct)
     {
         var result = await items.RestoreAsync(id, Actor, ct);
-        Toast(result.Ok ? "Item restored as inactive." : result.Error!, result.Ok ? "success" : "error");
+        Toast(result.Ok ? "تمت استعادة العنصر وهو غير مفعّل." : result.Error!, result.Ok ? "success" : "error");
         return Redirect("/admin/prizes");
     }
 
     private async Task<NewImage?> ReadImageAsync(WheelItemForm form, CancellationToken ct)
     {
-        if (form.HasTooManyDecimals) ModelState.AddModelError(nameof(form.WeightPercent), "Use at most two decimal places (e.g. 12.50).");
+        if (form.HasTooManyDecimals) ModelState.AddModelError(nameof(form.WeightPercent), "استخدم رقمين عشريين بحد أقصى (مثل 12.50).");
         if (form.Image is null) return null;
         var (data, type, error) = await ImageValidator.ReadAsync(form.Image, ct);
         if (error is not null)

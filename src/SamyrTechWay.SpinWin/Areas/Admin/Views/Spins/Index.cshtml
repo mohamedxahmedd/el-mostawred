@@ -1,46 +1,46 @@
 @model SpinListViewModel
 @{
-    ViewData["Title"] = "Spin attempts";
+    ViewData["Title"] = "سجل اللفّات";
     ViewData["Section"] = "spins";
     var f = Model.Filter;
     string PageUrl(int p) => $"/admin/spins?Q={Uri.EscapeDataString(f.Q ?? "")}&Kind={f.Kind}&From={f.From:yyyy-MM-dd}&To={f.To:yyyy-MM-dd}&Page={p}";
 }
 <form class="filters card" method="get" action="/admin/spins" role="search">
-    <div class="field grow"><label class="label" for="q">Search</label><input class="input" id="q" name="Q" value="@f.Q" placeholder="Customer, phone, invoice, item or reference ID" /></div>
+    <div class="field grow"><label class="label" for="q">بحث</label><input class="input" id="q" name="Q" value="@f.Q" placeholder="العميل أو رقم الموبايل أو الفاتورة أو الشريحة أو رقم المرجع" /></div>
     <div class="field">
-        <label class="label" for="kind">Result</label>
+        <label class="label" for="kind">النتيجة</label>
         <select class="select" id="kind" name="Kind">
-            <option value="all" selected="@(f.Kind is null or "all")">All</option>
-            <option value="won" selected="@(f.Kind == "won")">Won</option>
-            <option value="tryagain" selected="@(f.Kind == "tryagain")">Try Again</option>
+            <option value="all" selected="@(f.Kind is null or "all")">الكل</option>
+            <option value="won" selected="@(f.Kind == "won")">@AdminText.Result(SpinResultKind.Won)</option>
+            <option value="tryagain" selected="@(f.Kind == "tryagain")">@AdminText.Result(SpinResultKind.TryAgain)</option>
         </select>
     </div>
-    <div class="field"><label class="label" for="from">From</label><input class="input" id="from" name="From" type="date" value="@f.From?.ToString("yyyy-MM-dd")" /></div>
-    <div class="field"><label class="label" for="to">To</label><input class="input" id="to" name="To" type="date" value="@f.To?.ToString("yyyy-MM-dd")" /></div>
-    <button type="submit" class="btn"><partial name="_Icon" model="@("filter")" /> Apply</button>
+    <div class="field"><label class="label" for="from">من</label><input class="input" id="from" name="From" type="date" value="@f.From?.ToString("yyyy-MM-dd")" /></div>
+    <div class="field"><label class="label" for="to">إلى</label><input class="input" id="to" name="To" type="date" value="@f.To?.ToString("yyyy-MM-dd")" /></div>
+    <button type="submit" class="btn"><partial name="_Icon" model="@("filter")" /> تصفية</button>
 </form>
 <section class="card">
-    <p class="hint" style="margin-bottom:12px"><partial name="_Icon" model="@("lock")" /> Spin outcomes are permanent records and cannot be edited. Dates are Egypt time.</p>
+    <p class="hint" style="margin-bottom:12px"><partial name="_Icon" model="@("lock")" /> نتائج اللفّات سجلات دائمة ولا يمكن تعديلها. كل الأوقات بتوقيت مصر.</p>
     @if (Model.Result.Items.Count == 0)
     {
-        <p class="empty">No spins match these filters.</p>
+        <p class="empty">لا توجد لفّات تطابق هذه التصفية.</p>
     }
     else
     {
         <div class="table-wrap">
             <table class="data stack">
-                <thead><tr><th>Time</th><th>Customer</th><th>Invoice</th><th>Item</th><th>Result</th><th class="num">Credits</th><th>Reference</th></tr></thead>
+                <thead><tr><th>الوقت</th><th>العميل</th><th>الفاتورة</th><th>الشريحة</th><th>النتيجة</th><th class="num">رصيد اللفّات</th><th>المرجع</th></tr></thead>
                 <tbody>
                     @foreach (var s in Model.Result.Items)
                     {
                         <tr>
-                            <td data-label="Time" class="mono">@CairoTime.Format(s.CreatedAtUtc, "dd MMM yyyy HH:mm:ss")</td>
-                            <td data-label="Customer"><a href="/admin/customers/@s.CustomerId">@s.CustomerName</a></td>
-                            <td data-label="Invoice">@(s.Invoice ?? "—")</td>
-                            <td data-label="Item">@s.ItemName</td>
-                            <td data-label="Result"><span class="badge @(s.Kind == SpinResultKind.Won ? "badge-flame" : "badge-muted")">@(s.Kind == SpinResultKind.Won ? "Won" : "Try Again")</span></td>
-                            <td data-label="Credits" class="num mono">@s.CreditsBefore → @s.CreditsAfter</td>
-                            <td data-label="Reference" class="mono"><a href="/admin/spins/@s.Id">@s.Id.ToString()[..8]…</a></td>
+                            <td data-label="الوقت" class="mono">@AdminText.Date(s.CreatedAtUtc, "d MMM yyyy، HH:mm:ss")</td>
+                            <td data-label="العميل"><a href="/admin/customers/@s.CustomerId"><bdi>@s.CustomerName</bdi></a></td>
+                            <td data-label="الفاتورة"><bdi dir="ltr">@(s.Invoice ?? "—")</bdi></td>
+                            <td data-label="الشريحة"><bdi>@s.ItemName</bdi></td>
+                            <td data-label="النتيجة"><span class="badge @(s.Kind == SpinResultKind.Won ? "badge-flame" : "badge-muted")">@AdminText.Result(s.Kind)</span></td>
+                            <td data-label="رصيد اللفّات" class="num mono">@s.CreditsBefore ← @s.CreditsAfter</td>
+                            <td data-label="المرجع" class="mono"><a href="/admin/spins/@s.Id"><bdi dir="ltr">@s.Id.ToString()[..8]…</bdi></a></td>
                         </tr>
                     }
                 </tbody>

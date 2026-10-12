@@ -14,10 +14,10 @@ public sealed record Paged<T>(IReadOnlyList<T> Items, int Page, int PageSize, in
 // ---------- Auth ----------
 public sealed class AdminLoginForm
 {
-    [Required, EmailAddress, StringLength(256)]
+    [Required(ErrorMessage = "البريد الإلكتروني مطلوب."), EmailAddress(ErrorMessage = "البريد الإلكتروني غير صحيح."), StringLength(256)]
     public string Email { get; set; } = "";
 
-    [Required, DataType(DataType.Password), StringLength(200)]
+    [Required(ErrorMessage = "كلمة المرور مطلوبة."), DataType(DataType.Password), StringLength(200)]
     public string Password { get; set; } = "";
 
     public string? ReturnUrl { get; set; }
@@ -25,13 +25,13 @@ public sealed class AdminLoginForm
 
 public sealed class ChangePasswordForm
 {
-    [Required, DataType(DataType.Password), Display(Name = "Current password")]
+    [Required(ErrorMessage = "كلمة المرور الحالية مطلوبة."), DataType(DataType.Password), Display(Name = "كلمة المرور الحالية")]
     public string CurrentPassword { get; set; } = "";
 
-    [Required, DataType(DataType.Password), StringLength(200, MinimumLength = 12), Display(Name = "New password")]
+    [Required(ErrorMessage = "كلمة المرور الجديدة مطلوبة."), DataType(DataType.Password), StringLength(200, MinimumLength = 12, ErrorMessage = "كلمة المرور الجديدة يجب ألا تقل عن {2} حرفًا."), Display(Name = "كلمة المرور الجديدة")]
     public string NewPassword { get; set; } = "";
 
-    [Required, DataType(DataType.Password), Compare(nameof(NewPassword), ErrorMessage = "The passwords don't match."), Display(Name = "Confirm new password")]
+    [Required(ErrorMessage = "أكّد كلمة المرور الجديدة."), DataType(DataType.Password), Compare(nameof(NewPassword), ErrorMessage = "كلمتا المرور غير متطابقتين."), Display(Name = "تأكيد كلمة المرور الجديدة")]
     public string ConfirmPassword { get; set; } = "";
 }
 
@@ -91,22 +91,22 @@ public sealed class CustomerListViewModel
 
 public sealed class CustomerForm
 {
-    [Required(ErrorMessage = "Full name is required."), StringLength(120), Display(Name = "Full name")]
+    [Required(ErrorMessage = "الاسم بالكامل مطلوب."), StringLength(120, ErrorMessage = "{0} طويل جدًا (الحد الأقصى {1} حرف)."), Display(Name = "الاسم بالكامل")]
     public string FullName { get; set; } = "";
 
-    [Required(ErrorMessage = "Mobile number is required."), StringLength(32), Display(Name = "Mobile number")]
+    [Required(ErrorMessage = "رقم الموبايل مطلوب."), StringLength(32, ErrorMessage = "{0} طويل جدًا (الحد الأقصى {1} حرف)."), Display(Name = "رقم الموبايل")]
     public string Phone { get; set; } = "";
 
-    [StringLength(60), Display(Name = "Invoice / reference")]
+    [StringLength(60, ErrorMessage = "{0} طويل جدًا (الحد الأقصى {1} حرف)."), Display(Name = "رقم الفاتورة / المرجع")]
     public string? InvoiceReference { get; set; }
 
-    [StringLength(120), Display(Name = "Laptop model")]
+    [StringLength(120, ErrorMessage = "{0} طويل جدًا (الحد الأقصى {1} حرف)."), Display(Name = "موديل اللابتوب")]
     public string? LaptopModel { get; set; }
 
-    [StringLength(1000), Display(Name = "Internal notes")]
+    [StringLength(1000, ErrorMessage = "{0} طويل جدًا (الحد الأقصى {1} حرف)."), Display(Name = "ملاحظات داخلية")]
     public string? Notes { get; set; }
 
-    [Range(0, CustomerAdminService.MaxInitialCredits), Display(Name = "Spin credits to grant")]
+    [Range(0, CustomerAdminService.MaxInitialCredits, ErrorMessage = "{0} يجب أن يكون بين {1} و{2}."), Display(Name = "عدد اللفّات الممنوحة")]
     public int InitialCredits { get; set; } = 1;
 
     public string? RowVersion { get; set; }
@@ -116,12 +116,12 @@ public sealed class CustomerForm
 
 public sealed class CreditForm
 {
-    [Range(1, CustomerAdminService.MaxCreditAdjustment)]
+    [Range(1, CustomerAdminService.MaxCreditAdjustment, ErrorMessage = "عدد اللفّات يجب أن يكون بين {1} و{2}.")]
     public int Amount { get; set; } = 1;
 
     public string Direction { get; set; } = "grant"; // grant | revoke
 
-    [Required(ErrorMessage = "A reason is required."), StringLength(300, MinimumLength = 3)]
+    [Required(ErrorMessage = "السبب مطلوب."), StringLength(300, MinimumLength = 3, ErrorMessage = "اكتب سببًا من {2} إلى {1} حرف.")]
     public string Reason { get; set; } = "";
 }
 
@@ -143,54 +143,54 @@ public sealed class WheelItemForm
 {
     public int? Id { get; set; }
 
-    [Required(ErrorMessage = "English name is required."), StringLength(80), Display(Name = "Name (English)")]
+    [Required(ErrorMessage = "الاسم بالإنجليزية مطلوب."), StringLength(80, ErrorMessage = "{0} طويل جدًا (الحد الأقصى {1} حرف)."), Display(Name = "الاسم (إنجليزي)")]
     public string NameEn { get; set; } = "";
 
-    [StringLength(80), Display(Name = "Name (Arabic)")]
+    [StringLength(80, ErrorMessage = "{0} طويل جدًا (الحد الأقصى {1} حرف)."), Display(Name = "الاسم (عربي)")]
     public string? NameAr { get; set; }
 
-    [StringLength(300), Display(Name = "Short description (English)")]
+    [StringLength(300, ErrorMessage = "{0} طويل جدًا (الحد الأقصى {1} حرف)."), Display(Name = "وصف قصير (إنجليزي)")]
     public string? DescriptionEn { get; set; }
 
-    [StringLength(300), Display(Name = "Short description (Arabic)")]
+    [StringLength(300, ErrorMessage = "{0} طويل جدًا (الحد الأقصى {1} حرف)."), Display(Name = "وصف قصير (عربي)")]
     public string? DescriptionAr { get; set; }
 
     public WheelItemKind Kind { get; set; } = WheelItemKind.Prize;
 
-    [Range(0, 999), Display(Name = "Display order")]
+    [Range(0, 999, ErrorMessage = "{0} يجب أن يكون بين {1} و{2}."), Display(Name = "ترتيب العرض")]
     public int DisplayOrder { get; set; } = 10;
 
-    [Range(typeof(decimal), "0", "100", ErrorMessage = "Weight must be between 0 and 100."), Display(Name = "Probability weight (%)")]
+    [Range(typeof(decimal), "0", "100", ErrorMessage = "النسبة يجب أن تكون بين 0 و100."), Display(Name = "نسبة الفوز (%)")]
     public decimal WeightPercent { get; set; }
 
-    [Display(Name = "Built-in icon")]
+    [Display(Name = "الأيقونة")]
     public string? IconKey { get; set; } = "gift";
 
-    [Display(Name = "Wedge colour")]
+    [Display(Name = "لون الشريحة")]
     public string ColorKey { get; set; } = "ruby";
 
-    [Range(0, 1_000_000), Display(Name = "Stock (leave empty for unlimited)")]
+    [Range(0, 1_000_000, ErrorMessage = "{0} يجب أن يكون بين {1} و{2}."), Display(Name = "المخزون (اتركه فارغًا لعدد غير محدود)")]
     public int? StockQuantity { get; set; }
 
-    [Range(0, 1000), Display(Name = "Low-stock alert at")]
+    [Range(0, 1000, ErrorMessage = "{0} يجب أن يكون بين {1} و{2}."), Display(Name = "تنبيه انخفاض المخزون عند")]
     public int LowStockThreshold { get; set; } = 3;
 
-    [Display(Name = "Active on the wheel")]
+    [Display(Name = "مفعّلة على العجلة")]
     public bool IsActive { get; set; }
 
-    [Display(Name = "Celebration tier")]
+    [Display(Name = "مستوى الاحتفال")]
     public CelebrationTier Tier { get; set; } = CelebrationTier.Standard;
 
-    [StringLength(300), Display(Name = "Collection note (English)")]
+    [StringLength(300, ErrorMessage = "{0} طويل جدًا (الحد الأقصى {1} حرف)."), Display(Name = "ملاحظة الاستلام (إنجليزي)")]
     public string? CollectionNoteEn { get; set; }
 
-    [StringLength(300), Display(Name = "Collection note (Arabic)")]
+    [StringLength(300, ErrorMessage = "{0} طويل جدًا (الحد الأقصى {1} حرف)."), Display(Name = "ملاحظة الاستلام (عربي)")]
     public string? CollectionNoteAr { get; set; }
 
-    [Display(Name = "Image (JPEG, PNG or WebP, max 2 MB)")]
+    [Display(Name = "الصورة (JPEG أو PNG أو WebP، بحد أقصى 2 ميجابايت)")]
     public IFormFile? Image { get; set; }
 
-    [Display(Name = "Remove current image")]
+    [Display(Name = "حذف الصورة الحالية")]
     public bool RemoveImage { get; set; }
 
     public string? RowVersion { get; set; }
@@ -280,49 +280,49 @@ public sealed class AwardListViewModel
 // ---------- Settings & audit ----------
 public sealed class SettingsForm
 {
-    [Required, StringLength(120), Display(Name = "Site title")]
+    [Required(ErrorMessage = "{0} مطلوب."), StringLength(120, ErrorMessage = "{0} طويل جدًا (الحد الأقصى {1} حرف)."), Display(Name = "عنوان الموقع")]
     public string SiteTitle { get; set; } = "";
 
-    [Required, StringLength(300), Display(Name = "Promo subheading (English)")]
+    [Required(ErrorMessage = "{0} مطلوب."), StringLength(300, ErrorMessage = "{0} طويل جدًا (الحد الأقصى {1} حرف)."), Display(Name = "العنوان الفرعي للعرض (إنجليزي)")]
     public string PromoSubheadingEn { get; set; } = "";
 
-    [Required, StringLength(300), Display(Name = "Promo subheading (Arabic)")]
+    [Required(ErrorMessage = "{0} مطلوب."), StringLength(300, ErrorMessage = "{0} طويل جدًا (الحد الأقصى {1} حرف)."), Display(Name = "العنوان الفرعي للعرض (عربي)")]
     public string PromoSubheadingAr { get; set; } = "";
 
-    [Required, StringLength(500), Display(Name = "Default pickup instructions (English)")]
+    [Required(ErrorMessage = "{0} مطلوب."), StringLength(500, ErrorMessage = "{0} طويل جدًا (الحد الأقصى {1} حرف)."), Display(Name = "تعليمات الاستلام الافتراضية (إنجليزي)")]
     public string PickupInstructionsEn { get; set; } = "";
 
-    [Required, StringLength(500), Display(Name = "Default pickup instructions (Arabic)")]
+    [Required(ErrorMessage = "{0} مطلوب."), StringLength(500, ErrorMessage = "{0} طويل جدًا (الحد الأقصى {1} حرف)."), Display(Name = "تعليمات الاستلام الافتراضية (عربي)")]
     public string PickupInstructionsAr { get; set; } = "";
 
-    [StringLength(300), Display(Name = "Announcement (English)")]
+    [StringLength(300, ErrorMessage = "{0} طويل جدًا (الحد الأقصى {1} حرف)."), Display(Name = "إعلان (إنجليزي)")]
     public string? AnnouncementEn { get; set; }
 
-    [StringLength(300), Display(Name = "Announcement (Arabic)")]
+    [StringLength(300, ErrorMessage = "{0} طويل جدًا (الحد الأقصى {1} حرف)."), Display(Name = "إعلان (عربي)")]
     public string? AnnouncementAr { get; set; }
 
-    [Required, StringLength(300), Display(Name = "Paused message (English)")]
+    [Required(ErrorMessage = "{0} مطلوب."), StringLength(300, ErrorMessage = "{0} طويل جدًا (الحد الأقصى {1} حرف)."), Display(Name = "رسالة الإيقاف المؤقت (إنجليزي)")]
     public string PausedMessageEn { get; set; } = "";
 
-    [Required, StringLength(300), Display(Name = "Paused message (Arabic)")]
+    [Required(ErrorMessage = "{0} مطلوب."), StringLength(300, ErrorMessage = "{0} طويل جدًا (الحد الأقصى {1} حرف)."), Display(Name = "رسالة الإيقاف المؤقت (عربي)")]
     public string PausedMessageAr { get; set; } = "";
 
-    [Required, RegularExpression("^(ar|en)$"), Display(Name = "Default customer language")]
+    [Required(ErrorMessage = "{0} مطلوب."), RegularExpression("^(ar|en)$", ErrorMessage = "اختر العربية أو الإنجليزية."), Display(Name = "لغة العميل الافتراضية")]
     public string DefaultLanguage { get; set; } = "ar";
 
-    [Display(Name = "Sound on by default")]
+    [Display(Name = "الصوت مفعّل افتراضيًا")]
     public bool SoundEnabledByDefault { get; set; }
 
-    [Range(1500, 12000), Display(Name = "Shortest spin (ms)")]
+    [Range(1500, 12000, ErrorMessage = "{0} يجب أن يكون بين {1} و{2}."), Display(Name = "أقصر مدة للّفّة (ملّي ثانية)")]
     public int SpinDurationMinMs { get; set; }
 
-    [Range(1500, 12000), Display(Name = "Longest spin (ms)")]
+    [Range(1500, 12000, ErrorMessage = "{0} يجب أن يكون بين {1} و{2}."), Display(Name = "أطول مدة للّفّة (ملّي ثانية)")]
     public int SpinDurationMaxMs { get; set; }
 
-    [Display(Name = "Animation intensity")]
+    [Display(Name = "قوة الحركة")]
     public AnimationIntensity AnimationIntensity { get; set; }
 
-    [Display(Name = "Campaign open (spins allowed)")]
+    [Display(Name = "الحملة مفتوحة (اللفّ مسموح)")]
     public bool CampaignEnabled { get; set; }
 
     public string? RowVersion { get; set; }

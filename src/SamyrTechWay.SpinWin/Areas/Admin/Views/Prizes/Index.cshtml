@@ -1,48 +1,48 @@
 @model PrizesViewModel
 @{
-    ViewData["Title"] = "Prizes & odds";
+    ViewData["Title"] = "الجوائز والنسب";
     ViewData["Section"] = "prizes";
     var odds = Model.Odds;
 }
 <div class="page-actions">
-    <h2>Wheel items</h2>
+    <h2>عناصر العجلة</h2>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <a class="btn btn-primary" href="/admin/prizes/create"><partial name="_Icon" model="@("plus")" /> Add prize</a>
-        <a class="btn" href="/admin/prizes/create?kind=TryAgain"><partial name="_Icon" model="@("rotate-ccw")" /> Add Try Again item</a>
+        <a class="btn btn-primary" href="/admin/prizes/create"><partial name="_Icon" model="@("plus")" /> إضافة جائزة</a>
+        <a class="btn" href="/admin/prizes/create?kind=TryAgain"><partial name="_Icon" model="@("rotate-ccw")" /> إضافة عنصر «حاول مرة أخرى»</a>
     </div>
 </div>
 
 @if (odds.Status == WheelStatus.InvalidAllocation)
 {
-    <div class="alert alert-error" role="alert"><partial name="_Icon" model="@("triangle-alert")" /><span><strong>Spins are blocked:</strong> active weights total @WheelItemAdminService.Percent(odds.ConfiguredTotal). Set them to exactly 100.00% below.</span></div>
+    <div class="alert alert-error" role="alert"><partial name="_Icon" model="@("triangle-alert")" /><span><strong>اللفّات متوقفة:</strong> مجموع نسب العناصر المفعّلة <bdi dir="ltr">@WheelItemAdminService.Percent(odds.ConfiguredTotal)</bdi>. اضبطها بالأسفل لتصبح <bdi dir="ltr">100.00%</bdi> بالضبط.</span></div>
 }
 else if (odds.Status == WheelStatus.NoEligiblePrize)
 {
-    <div class="alert alert-error" role="alert"><partial name="_Icon" model="@("triangle-alert")" /><span><strong>Spins are blocked:</strong> no real prize is in stock and active. Restock or activate a prize. (Try Again alone never runs the wheel.)</span></div>
+    <div class="alert alert-error" role="alert"><partial name="_Icon" model="@("triangle-alert")" /><span><strong>اللفّات متوقفة:</strong> لا توجد جائزة حقيقية مفعّلة ومتوفرة في المخزون. زوّد المخزون أو فعّل جائزة. (عنصر «حاول مرة أخرى» وحده لا يكفي لتشغيل العجلة.)</span></div>
 }
 
 <div class="grid-2">
     <form class="card" method="post" asp-antiforgery="true" action="/admin/prizes/allocation" id="allocation-form" novalidate data-busy-form>
         <div class="card-head">
-            <h2>Probability allocation</h2>
-            <span class="hint">Configured weights of active items must total 100.00%</span>
+            <h2>توزيع النسب</h2>
+            <span class="hint">مجموع نسب العناصر المفعّلة يجب أن يساوي <bdi dir="ltr">100.00%</bdi></span>
         </div>
         <div class="alloc-total" id="alloc-total" data-valid="@(odds.ConfiguredTotal == WheelOdds.FullAllocation ? "true" : "false")">
-            <span class="muted">Active total</span>
-            <strong id="alloc-sum">@WheelItemAdminService.Percent(odds.ConfiguredTotal)</strong>
+            <span class="muted">مجموع المفعّل</span>
+            <strong id="alloc-sum" dir="ltr">@WheelItemAdminService.Percent(odds.ConfiguredTotal)</strong>
             <span class="alloc-bar" aria-hidden="true"><span id="alloc-bar" style="width:@Math.Min(100, odds.ConfiguredTotal / 100.0).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)%"></span></span>
             <span class="hint" id="alloc-msg" aria-live="polite"></span>
         </div>
         <div class="table-wrap" style="margin-top:14px">
             <table class="data stack">
-                <thead><tr><th>Item</th><th>Active</th><th class="num">Weight %</th><th class="num">Effective now</th><th class="num">Stock</th><th class="num">Order</th><th></th></tr></thead>
+                <thead><tr><th>العنصر</th><th>مفعّل</th><th class="num">النسبة %</th><th class="num">النسبة الفعلية الآن</th><th class="num">المخزون</th><th class="num">الترتيب</th><th><span class="sr-only">إجراءات</span></th></tr></thead>
                 <tbody>
                     @for (var i = 0; i < Model.Live.Count; i++)
                     {
                         var row = Model.Live[i];
                         var it = row.Item;
                         <tr>
-                            <td data-label="Item">
+                            <td data-label="العنصر">
                                 <input type="hidden" name="Rows[@i].Id" value="@it.Id" />
                                 <div class="item-cell">
                                     <span class="thumb">
@@ -50,32 +50,32 @@ else if (odds.Status == WheelStatus.NoEligiblePrize)
                                         else { <svg class="icon icon-lg"><use href="/assets/icons/ui.svg#p-@WheelPresenter.Icon(it.IconKey, it.Kind)"></use></svg> }
                                     </span>
                                     <span>
-                                        <a class="strong" href="/admin/prizes/@it.Id/edit">@it.NameEn</a>
-                                        <small>@(it.Kind == WheelItemKind.TryAgain ? "Try Again · refunds the credit" : it.CelebrationTier.ToString())@(it.NameAr is null ? "" : $" · {it.NameAr}")</small>
+                                        <a class="strong" href="/admin/prizes/@it.Id/edit">@AdminText.Name(it.NameEn, it.NameAr)</a>
+                                        <small>@(it.Kind == WheelItemKind.TryAgain ? "حاول مرة أخرى · تُعيد اللفّة" : AdminText.Tier(it.CelebrationTier))@(it.NameAr is null ? "" : $" · {it.NameAr}")</small>
                                     </span>
                                 </div>
                             </td>
-                            <td data-label="Active">
-                                <label class="check"><input type="checkbox" name="Rows[@i].IsActive" value="true" @(it.IsActive ? "checked" : "") data-alloc-active /><span class="switch" aria-hidden="true"></span><span class="sr-only">Active</span></label>
+                            <td data-label="مفعّل">
+                                <label class="check"><input type="checkbox" name="Rows[@i].IsActive" value="true" @(it.IsActive ? "checked" : "") data-alloc-active /><span class="switch" aria-hidden="true"></span><span class="sr-only">مفعّل</span></label>
                                 <input type="hidden" name="Rows[@i].IsActive" value="false" />
                             </td>
-                            <td data-label="Weight %" class="num">
+                            <td data-label="النسبة %" class="num">
                                 <input class="input pct-input" name="Rows[@i].Percent" type="number" min="0" max="100" step="0.01" inputmode="decimal"
-                                       value="@((it.ProbabilityBasisPoints / 100m).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture))" data-alloc-pct aria-label="Weight percent for @it.NameEn" />
+                                       value="@((it.ProbabilityBasisPoints / 100m).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture))" data-alloc-pct aria-label="نسبة الفوز لـ @AdminText.Name(it.NameEn, it.NameAr)" />
                             </td>
-                            <td data-label="Effective now" class="num">
-                                @if (row.Eligible) { <span class="strong">@WheelPresenter.FormatPercent(row.EffectiveProbability)</span> }
-                                else if (it.IsActive && !(it.Kind == WheelItemKind.TryAgain || it.StockQuantity is null || it.StockQuantity > 0)) { <span class="badge badge-bad">Sold out</span> }
+                            <td data-label="النسبة الفعلية الآن" class="num">
+                                @if (row.Eligible) { <span class="strong"><bdi dir="ltr">@WheelPresenter.FormatPercent(row.EffectiveProbability)</bdi></span> }
+                                else if (it.IsActive && !(it.Kind == WheelItemKind.TryAgain || it.StockQuantity is null || it.StockQuantity > 0)) { <span class="badge badge-bad">نفد المخزون</span> }
                                 else { <span class="dim">—</span> }
                             </td>
-                            <td data-label="Stock" class="num">
-                                @if (it.Kind == WheelItemKind.TryAgain) { <span class="dim">n/a</span> }
-                                else if (it.StockQuantity is null) { <span class="dim">Unlimited</span> }
+                            <td data-label="المخزون" class="num">
+                                @if (it.Kind == WheelItemKind.TryAgain) { <span class="dim">لا ينطبق</span> }
+                                else if (it.StockQuantity is null) { <span class="dim">غير محدود</span> }
                                 else { <span class="@(row.LowStock ? "badge badge-warn" : "")">@it.StockQuantity</span> }
                             </td>
-                            <td data-label="Order" class="num"><input class="input order-input" name="Rows[@i].DisplayOrder" type="number" min="0" max="999" value="@it.DisplayOrder" aria-label="Display order for @it.NameEn" /></td>
+                            <td data-label="الترتيب" class="num"><input class="input order-input" name="Rows[@i].DisplayOrder" type="number" min="0" max="999" value="@it.DisplayOrder" aria-label="ترتيب العرض لـ @AdminText.Name(it.NameEn, it.NameAr)" /></td>
                             <td data-label="">
-                                <a class="btn btn-xs" href="/admin/prizes/@it.Id/edit" aria-label="Edit @it.NameEn"><partial name="_Icon" model="@("pencil")" /></a>
+                                <a class="btn btn-xs" href="/admin/prizes/@it.Id/edit" aria-label="تعديل @AdminText.Name(it.NameEn, it.NameAr)" title="تعديل"><partial name="_Icon" model="@("pencil")" /></a>
                             </td>
                         </tr>
                     }
@@ -84,21 +84,21 @@ else if (odds.Status == WheelStatus.NoEligiblePrize)
         </div>
         @if (Model.Live.Count == 0)
         {
-            <p class="empty">No wheel items yet. Add prizes, then activate them here.</p>
+            <p class="empty">لا توجد عناصر على العجلة بعد. أضف الجوائز، ثم فعّلها من هنا.</p>
         }
         else
         {
             <div class="form-actions" style="margin-top:14px">
-                <button type="submit" class="btn btn-primary" id="alloc-save"><partial name="_Icon" model="@("check")" /> Save allocation</button>
+                <button type="submit" class="btn btn-primary" id="alloc-save"><partial name="_Icon" model="@("check")" /> حفظ توزيع النسب</button>
             </div>
         }
     </form>
 
     <section class="card" aria-labelledby="preview-title">
-        <div class="card-head"><h2 id="preview-title">Live wheel preview</h2><span class="hint">Effective odds after stock filtering</span></div>
+        <div class="card-head"><h2 id="preview-title">معاينة العجلة الحالية</h2><span class="hint">النسب الفعلية بعد استبعاد ما نفد مخزونه</span></div>
         @if (Model.Preview.Count == 0)
         {
-            <p class="empty">The wheel is not spinnable yet, so there is nothing to preview.</p>
+            <p class="empty">العجلة غير جاهزة للّف بعد، لذلك لا توجد معاينة.</p>
         }
         else
         {
@@ -110,7 +110,7 @@ else if (odds.Status == WheelStatus.NoEligiblePrize)
             <ul class="legend-list" style="list-style:none;padding:0;margin:14px 0 0;display:grid;gap:6px">
                 @foreach (var p in Model.Preview)
                 {
-                    <li style="display:flex;justify-content:space-between;gap:10px;font-size:14px"><span><span class="badge swatch-@p.Color" style="width:12px;height:12px;padding:0;border-radius:4px"></span> @p.Name</span><span class="strong">@WheelPresenter.FormatPercent(Model.Odds.ProbabilityOf(p.Id))</span></li>
+                    <li style="display:flex;justify-content:space-between;gap:10px;font-size:14px"><span><span class="badge swatch-@p.Color" style="width:12px;height:12px;padding:0;border-radius:4px"></span> @p.Name</span><span class="strong"><bdi dir="ltr">@WheelPresenter.FormatPercent(Model.Odds.ProbabilityOf(p.Id))</bdi></span></li>
                 }
             </ul>
             <script type="application/json" id="preview-data">@Json.Serialize(Model.Preview)</script>
@@ -121,18 +121,18 @@ else if (odds.Status == WheelStatus.NoEligiblePrize)
 @if (Model.Archived.Count > 0)
 {
     <section class="card">
-        <div class="card-head"><h2>Archived</h2><span class="hint">Kept for history; never on the wheel</span></div>
+        <div class="card-head"><h2>المؤرشفة</h2><span class="hint">محفوظة للسجل فقط، ولا تظهر على العجلة</span></div>
         <div class="table-wrap">
             <table class="data stack">
-                <thead><tr><th>Item</th><th class="num">Wins</th><th></th></tr></thead>
+                <thead><tr><th>العنصر</th><th class="num">مرات الفوز</th><th><span class="sr-only">إجراءات</span></th></tr></thead>
                 <tbody>
                     @foreach (var row in Model.Archived)
                     {
                         <tr>
-                            <td data-label="Item">@row.Item.NameEn <span class="dim">(@row.Item.Kind)</span></td>
-                            <td data-label="Wins" class="num">@row.Wins</td>
+                            <td data-label="العنصر">@AdminText.Name(row.Item.NameEn, row.Item.NameAr) <span class="dim">(@AdminText.Kind(row.Item.Kind))</span></td>
+                            <td data-label="مرات الفوز" class="num">@row.Wins</td>
                             <td data-label="">
-                                <form method="post" asp-antiforgery="true" action="/admin/prizes/@row.Item.Id/restore"><button type="submit" class="btn btn-xs"><partial name="_Icon" model="@("archive-restore")" /> Restore</button></form>
+                                <form method="post" asp-antiforgery="true" action="/admin/prizes/@row.Item.Id/restore"><button type="submit" class="btn btn-xs"><partial name="_Icon" model="@("archive-restore")" /> استعادة</button></form>
                             </td>
                         </tr>
                     }

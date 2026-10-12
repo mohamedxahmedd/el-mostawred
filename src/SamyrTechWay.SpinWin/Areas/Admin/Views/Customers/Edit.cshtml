@@ -1,6 +1,6 @@
 @model CustomerForm
 @{
-    ViewData["Title"] = "Edit customer";
+    ViewData["Title"] = "تعديل العميل";
     ViewData["Section"] = "customers";
     var id = (int)ViewData["CustomerId"]!;
 }
@@ -8,7 +8,7 @@
     <input type="hidden" asp-for="RowVersion" />
     <partial name="_CustomerFields" model="Model" view-data="ViewData" />
     <div class="form-actions" style="margin-top:18px">
-        <a class="btn btn-ghost" href="/admin/customers/@id">Cancel</a>
-        <button type="submit" class="btn btn-primary">Save changes</button>
+        <a class="btn btn-ghost" href="/admin/customers/@id">إلغاء</a>
+        <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
     </div>
 </form>

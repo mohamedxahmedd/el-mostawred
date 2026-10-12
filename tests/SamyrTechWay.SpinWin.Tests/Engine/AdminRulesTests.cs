@@ -104,7 +104,7 @@ public class AdminRulesTests : IAsyncLifetime
 
         Assert.True(interceptor.Fired);
         Assert.False(result.Ok);
-        Assert.Contains("Try Again", result.Error);
+        Assert.Contains("حاول مرة أخرى", result.Error);
         var total = await _host.WithDbAsync(db => db.WheelItems.Where(w => w.IsActive && !w.IsArchived).SumAsync(w => w.ProbabilityBasisPoints));
         Assert.Equal(10_000, total); // the wheel still adds up
     }

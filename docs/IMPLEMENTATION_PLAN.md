@@ -25,7 +25,7 @@ Authoritative spec: `docs/MASTER_BUILD_PROMPT.md`. This plan records the decisio
 | Data Protection | Keys persisted to SQL (`DataProtectionKeys`). | Free plan recycles app after idle; cookies must survive restarts. |
 | Front end | Razor + vanilla ES modules, GSAP 3.15.0 (bundled locally), SVG wheel in a rotating container, Web Audio–synthesised sounds (no third-party audio rights), self-hosted Outfit + Cairo variable fonts. No Bootstrap/jQuery. | Spec §2, §5. |
 | Wheel slices | All slices are the **same size** (owner decision, Oct 2026, replacing the spec's proportional wedges). Odds are server-side logic only; the wheel lands inside the server-chosen item's slice. Customers never see the odds: the "Prizes" list shows names and photos only, and the API sends no probabilities (`WebTests.Customers_never_receive_the_odds`). Admins still see configured and effective odds. | Owner request: equal visual slices, no odds shown to customers. |
-| Localisation | Public site Arabic RTL by default with English toggle (cookie). Admin English. Prize names AR + EN. | Spec §9. |
+| Localisation | Public site Arabic RTL by default with English toggle (cookie). Admin **Arabic-only, RTL** (owner request, Oct 2026; labels and Cairo dates via `AdminText`). Prize names AR + EN. | Spec §9; owner request. |
 | Share image | 1080×1350 PNG drawn on `<canvas>` from same-origin assets; Web Share API with file → download fallback. Only prize name, tier, date and optional first name. | Spec §5D. |
 | HTTPS | `Security:RequireHttps` (default true). When false (Monster Free before HTTPS ticket) the site works over HTTP but shows a "demo only — do not enter real codes" banner. | Spec §8, §13. |
 
@@ -107,7 +107,7 @@ Spec §12 coverage: cases 1–11 are automated (`tests/SamyrTechWay.SpinWin.Test
   read access could forge cookies — protect the DB credentials accordingly.
 - Rate limits are in-memory per app instance (fine for the single-instance Free plan; they reset on app recycle).
 - Sounds are synthesised with Web Audio (no licensed audio files). Browsers only allow audio after the first user gesture.
-- Admin UI is English only (customer site is Arabic + English), as planned.
+- Admin UI is Arabic only (no language toggle). Audit-log details written by the system stay technical English text.
 - No email/SMS: access codes are handed over by staff (copy / print card) by design.
 - Lockouts (customer 5 wrong codes / admin 5 wrong passwords → 15 min) can be triggered by anyone who knows a phone number or
   the admin e-mail, temporarily blocking *new* sign-ins for that account. Live sessions are not affected, and the per-IP rate limit

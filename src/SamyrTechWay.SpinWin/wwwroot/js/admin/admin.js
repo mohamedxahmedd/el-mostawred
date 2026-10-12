@@ -64,7 +64,7 @@ document.querySelectorAll('[data-copy]').forEach(btn => btn.addEventListener('cl
     const sel = getSelection(); sel.removeAllRanges(); sel.addRange(range);
     document.execCommand?.('copy');
   }
-  toast('Copied to clipboard');
+  toast('تم النسخ');
 }));
 document.querySelectorAll('[data-print]').forEach(btn => btn.addEventListener('click', () => print()));
 
@@ -74,9 +74,9 @@ const preview = document.getElementById('image-preview');
 file?.addEventListener('change', () => {
   const f = file.files?.[0];
   if (!f) return;
-  if (f.size > 2 * 1024 * 1024) toast('Images must be 2 MB or smaller.', 'error');
+  if (f.size > 2 * 1024 * 1024) toast('يجب ألا يزيد حجم الصورة عن 2 ميجابايت.', 'error');
   const img = new Image();
-  img.alt = 'Selected image preview';
+  img.alt = 'معاينة الصورة المختارة';
   img.src = URL.createObjectURL(f);
   preview.replaceChildren(img);
 });
@@ -87,8 +87,8 @@ if (chart) {
   const tip = document.getElementById('chart-tip');
   const show = el => {
     tip.replaceChildren();
-    const b = document.createElement('b'); b.textContent = `${el.dataset.spins} spins`;
-    const w = document.createElement('span'); w.textContent = `${el.dataset.wins} real wins · ${el.dataset.spins - el.dataset.wins} Try Again`;
+    const b = document.createElement('b'); b.textContent = `${el.dataset.spins} لفّة`;
+    const w = document.createElement('span'); w.textContent = `${el.dataset.wins} فوز · ${el.dataset.spins - el.dataset.wins} حاول مرة أخرى`;
     const d = document.createElement('span'); d.textContent = el.dataset.label;
     tip.append(b, w, d);
     const r = el.getBoundingClientRect(), c = chart.getBoundingClientRect();

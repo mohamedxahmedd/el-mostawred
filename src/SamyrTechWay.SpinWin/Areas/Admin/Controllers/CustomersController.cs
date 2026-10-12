@@ -70,7 +70,7 @@ public sealed class CustomersController(AdminQueries queries, CustomerAdminServi
             AddError(result);
             return View(form);
         }
-        Toast("Customer updated.");
+        Toast("تم تحديث بيانات العميل.");
         return Redirect($"/admin/customers/{id}");
     }
 
@@ -80,8 +80,8 @@ public sealed class CustomersController(AdminQueries queries, CustomerAdminServi
         var result = await customers.ClearCreditsAsync(id, Actor, ct);
         if (!result.Ok && result.Error == CustomerAdminService.CustomerNotFoundMessage) return NotFound();
         Toast(!result.Ok ? result.Error!
-            : result.Value > 0 ? $"Removed {result.Value} spin{(result.Value == 1 ? "" : "s")}. This customer can't spin until you grant credits again."
-            : "This customer already has 0 spins.", result.Ok ? "success" : "error");
+            : result.Value > 0 ? $"تم خصم {AdminText.Spins(result.Value)}. لن يستطيع هذا العميل اللف حتى تضيف له لفّات من جديد."
+            : "رصيد هذا العميل 0 لفّات بالفعل.", result.Ok ? "success" : "error");
         return Redirect($"/admin/customers/{id}");
     }
 
@@ -91,7 +91,7 @@ public sealed class CustomersController(AdminQueries queries, CustomerAdminServi
         var delta = form.Direction == "revoke" ? -form.Amount : form.Amount;
         var result = ModelState.IsValid
             ? await customers.AdjustCreditsAsync(id, delta, form.Reason, Actor, ct)
-            : ServiceResult<int>.Fail(ModelState.Values.SelectMany(v => v.Errors).FirstOrDefault()?.ErrorMessage ?? "Check the form.");
+            : ServiceResult<int>.Fail(ModelState.Values.SelectMany(v => v.Errors).FirstOrDefault()?.ErrorMessage ?? "راجع البيانات المدخلة.");
 
         if (!result.Ok)
         {
@@ -106,7 +106,7 @@ public sealed class CustomersController(AdminQueries queries, CustomerAdminServi
             });
         }
 
-        Toast(delta > 0 ? $"Granted {delta} credit(s). Balance: {result.Value}." : $"Removed {-delta} credit(s). Balance: {result.Value}.");
+        Toast(delta > 0 ? $"تمت إضافة {AdminText.Spins(delta)}. الرصيد الحالي: {result.Value}." : $"تم خصم {AdminText.Spins(-delta)}. الرصيد الحالي: {result.Value}.");
         return Redirect($"/admin/customers/{id}");
     }
 
@@ -125,7 +125,7 @@ public sealed class CustomersController(AdminQueries queries, CustomerAdminServi
     {
         var result = await customers.SetActiveAsync(id, active, Actor, ct);
         if (!result.Ok) return NotFound();
-        Toast(active ? "Customer re-activated." : "Customer disabled. Their sessions have been signed out.", active ? "success" : "warning");
+        Toast(active ? "تمت إعادة تفعيل العميل." : "تم إيقاف العميل وتسجيل خروجه من كل الجلسات.", active ? "success" : "warning");
         return Redirect($"/admin/customers/{id}");
     }
 

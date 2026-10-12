@@ -1,6 +1,6 @@
 @model DashboardViewModel
 @{
-    ViewData["Title"] = "Dashboard";
+    ViewData["Title"] = "لوحة التحكم";
     ViewData["Section"] = "dashboard";
     var maxA = Math.Max(1, Model.Activity.Max(a => a.Attempts));
     // Four gridline steps of a clean 1/2/5 × 10^n size, so every tick label is a whole number.
@@ -13,40 +13,45 @@
 }
 @if (!Model.CampaignEnabled)
 {
-    <div class="alert alert-warn" role="alert"><partial name="_Icon" model="@("circle-pause")" /><span><strong>Campaign paused.</strong> Customers can sign in and see their prizes, but nobody can spin. <a href="/admin/settings">Open settings</a></span></div>
+    <div class="alert alert-warn" role="alert"><partial name="_Icon" model="@("circle-pause")" /><span><strong>الحملة متوقفة مؤقتًا.</strong> يمكن للعملاء تسجيل الدخول ومشاهدة جوائزهم، لكن لا يمكن لأحد اللف الآن. <a href="/admin/settings">فتح الإعدادات</a></span></div>
 }
 @if (Model.WheelStatus != WheelStatus.Ready)
 {
     <div class="alert alert-error" role="alert"><partial name="_Icon" model="@("triangle-alert")" />
         <span>
-            <strong>Spins are blocked.</strong>
-            @(Model.WheelStatus == WheelStatus.InvalidAllocation
-                ? $"Active wheel weights total {WheelItemAdminService.Percent(Model.ConfiguredTotal)}; they must total exactly 100.00%."
-                : "No real prize is currently eligible (all inactive or out of stock). Customers see a friendly maintenance message and no credits are used.")
-            <a href="/admin/prizes">Fix in Prizes &amp; odds</a>
+            <strong>اللفّات متوقفة.</strong>
+            @if (Model.WheelStatus == WheelStatus.InvalidAllocation)
+            {
+                <text>مجموع نسب الشرائح المفعّلة في العجلة <bdi dir="ltr">@WheelItemAdminService.Percent(Model.ConfiguredTotal)</bdi>، ويجب أن يساوي <bdi dir="ltr">100.00%</bdi> بالضبط.</text>
+            }
+            else
+            {
+                <text>لا توجد جائزة حقيقية متاحة حاليًا (كلها غير مفعّلة أو نفد مخزونها). يرى العملاء رسالة صيانة لطيفة ولا يُخصم أي رصيد.</text>
+            }
+            <a href="/admin/prizes">الإصلاح من صفحة الجوائز والنسب</a>
         </span>
     </div>
 }
 
-<section class="kpis" aria-label="Key figures">
-    <a class="kpi" href="/admin/customers"><span class="kpi-label"><partial name="_Icon" model="@("users")" /> Customers</span><span class="kpi-value">@Model.Customers.ToString("N0")</span><span class="kpi-sub">@Model.ActiveCustomers.ToString("N0") active</span></a>
-    <a class="kpi" href="/admin/customers?WithCredits=true"><span class="kpi-label"><partial name="_Icon" model="@("coins")" /> Available credits</span><span class="kpi-value">@Model.AvailableCredits.ToString("N0")</span><span class="kpi-sub">@Model.CustomersWithCredits.ToString("N0") @(Model.CustomersWithCredits == 1 ? "customer" : "customers") can spin</span></a>
-    <div class="kpi"><span class="kpi-label"><partial name="_Icon" model="@("ticket")" /> Consumed credits</span><span class="kpi-value">@Model.ConsumedCredits.ToString("N0")</span><span class="kpi-sub">spent on real prizes</span></div>
-    <a class="kpi" href="/admin/spins"><span class="kpi-label"><partial name="_Icon" model="@("dices")" /> Total spins</span><span class="kpi-value">@Model.TotalAttempts.ToString("N0")</span><span class="kpi-sub">@Model.TryAgainAttempts.ToString("N0") Try Again (refunded)</span></a>
-    <a class="kpi" href="/admin/spins?Kind=won"><span class="kpi-label"><partial name="_Icon" model="@("trophy")" /> Real wins</span><span class="kpi-value">@Model.RealWins.ToString("N0")</span><span class="kpi-sub">awards created</span></a>
-    <a class="kpi" href="/admin/awards?Status=pending"><span class="kpi-label"><partial name="_Icon" model="@("package")" /> Awaiting delivery</span><span class="kpi-value">@Model.PendingAwards.ToString("N0")</span><span class="kpi-sub">pending awards</span></a>
-    <a class="kpi" href="/admin/awards?Status=delivered"><span class="kpi-label"><partial name="_Icon" model="@("circle-check")" /> Delivered</span><span class="kpi-value">@Model.DeliveredAwards.ToString("N0")</span><span class="kpi-sub">handed to customers</span></a>
-    <a class="kpi" href="/admin/prizes"><span class="kpi-label"><partial name="_Icon" model="@("gift")" /> Active prizes</span><span class="kpi-value">@Model.ActivePrizes.ToString("N0")</span><span class="kpi-sub">@(Model.WheelStatus == WheelStatus.Ready ? "wheel ready" : "wheel blocked")</span></a>
+<section class="kpis" aria-label="الأرقام الرئيسية">
+    <a class="kpi" href="/admin/customers"><span class="kpi-label"><partial name="_Icon" model="@("users")" /> العملاء</span><span class="kpi-value">@Model.Customers.ToString("N0")</span><span class="kpi-sub">@Model.ActiveCustomers.ToString("N0") مفعّل</span></a>
+    <a class="kpi" href="/admin/customers?WithCredits=true"><span class="kpi-label"><partial name="_Icon" model="@("coins")" /> اللفّات المتاحة</span><span class="kpi-value">@Model.AvailableCredits.ToString("N0")</span><span class="kpi-sub">@Model.CustomersWithCredits.ToString("N0") @(Model.CustomersWithCredits == 1 ? "عميل يمكنه اللف" : "عملاء يمكنهم اللف")</span></a>
+    <div class="kpi"><span class="kpi-label"><partial name="_Icon" model="@("ticket")" /> اللفّات المستهلكة</span><span class="kpi-value">@Model.ConsumedCredits.ToString("N0")</span><span class="kpi-sub">على جوائز حقيقية</span></div>
+    <a class="kpi" href="/admin/spins"><span class="kpi-label"><partial name="_Icon" model="@("dices")" /> إجمالي اللفّات</span><span class="kpi-value">@Model.TotalAttempts.ToString("N0")</span><span class="kpi-sub">@Model.TryAgainAttempts.ToString("N0") حاول مرة أخرى (تم استرداد رصيدها)</span></a>
+    <a class="kpi" href="/admin/spins?Kind=won"><span class="kpi-label"><partial name="_Icon" model="@("trophy")" /> مرات الفوز</span><span class="kpi-value">@Model.RealWins.ToString("N0")</span><span class="kpi-sub">جوائز مكتسبة مسجّلة</span></a>
+    <a class="kpi" href="/admin/awards?Status=pending"><span class="kpi-label"><partial name="_Icon" model="@("package")" /> في انتظار التسليم</span><span class="kpi-value">@Model.PendingAwards.ToString("N0")</span><span class="kpi-sub">جوائز لم تُسلَّم بعد</span></a>
+    <a class="kpi" href="/admin/awards?Status=delivered"><span class="kpi-label"><partial name="_Icon" model="@("circle-check")" /> تم التسليم</span><span class="kpi-value">@Model.DeliveredAwards.ToString("N0")</span><span class="kpi-sub">سُلّمت إلى العملاء</span></a>
+    <a class="kpi" href="/admin/prizes"><span class="kpi-label"><partial name="_Icon" model="@("gift")" /> الجوائز المفعّلة</span><span class="kpi-value">@Model.ActivePrizes.ToString("N0")</span><span class="kpi-sub">@(Model.WheelStatus == WheelStatus.Ready ? "العجلة جاهزة" : "العجلة متوقفة")</span></a>
 </section>
 
 <div class="grid-2">
     <section class="card" aria-labelledby="chart-title">
         <div class="card-head">
-            <h2 id="chart-title">Spins per day</h2>
-            <span class="hint">Last 7 days · Egypt time</span>
+            <h2 id="chart-title">اللفّات يوميًا</h2>
+            <span class="hint">آخر 7 أيام · بتوقيت مصر</span>
         </div>
-        <div class="chart" id="activity-chart">
-            <svg viewBox="0 0 @W @H" role="img" aria-label="Spins per day for the last seven days. Details in the table below.">
+        <div class="chart" id="activity-chart" dir="ltr">
+            <svg viewBox="0 0 @W @H" role="img" aria-label="عدد اللفّات يوميًا خلال آخر 7 أيام. التفاصيل في الجدول أدناه.">
                 <g class="grid">
                     @for (var i = 0; i <= 4; i++)
                     {
@@ -73,7 +78,7 @@
                     var h = plotH * d.Attempts / (double)yMax;
                     var x = cx - barW / 2; var y = padT + plotH - h; var r = Math.Min(4, h);
                     <rect class="hit" x="@((padL + band * i).ToString("0.#"))" y="@padT" width="@band.ToString("0.#")" height="@plotH" tabindex="0"
-                          data-label="@d.Label" data-spins="@d.Attempts" data-wins="@d.Wins" aria-label="@d.Label: @d.Attempts spins, @d.Wins wins" />
+                          data-label="@d.Label" data-spins="@d.Attempts" data-wins="@d.Wins" aria-label="@d.Label: @d.Attempts لفّة، @d.Wins فوز" />
                     @if (d.Attempts > 0)
                     {
                         <path class="bar" d="M@(x.ToString("0.##")) @((padT + plotH).ToString("0.##")) V@((y + r).ToString("0.##")) Q@(x.ToString("0.##")) @(y.ToString("0.##")) @((x + r).ToString("0.##")) @(y.ToString("0.##")) H@((x + barW - r).ToString("0.##")) Q@((x + barW).ToString("0.##")) @(y.ToString("0.##")) @((x + barW).ToString("0.##")) @((y + r).ToString("0.##")) V@((padT + plotH).ToString("0.##")) Z" pointer-events="none" />
@@ -86,13 +91,13 @@
                     <!text class="value" x="@px.ToString("0.#")" y="@py.ToString("0.#")" text-anchor="middle">@peak.a.Attempts</!text>
                 }
             </svg>
-            <div class="chart-tip" id="chart-tip" hidden></div>
+            <div class="chart-tip" id="chart-tip" dir="rtl" hidden></div>
         </div>
         <details class="disclosure" style="margin-top:12px">
-            <summary>Table view <partial name="_Icon" model="@("chevron-down")" /></summary>
+            <summary>عرض كجدول <partial name="_Icon" model="@("chevron-down")" /></summary>
             <div class="disclosure-body">
                 <table class="data">
-                    <thead><tr><th>Day</th><th class="num">Spins</th><th class="num">Real wins</th><th class="num">Try Again</th></tr></thead>
+                    <thead><tr><th>اليوم</th><th class="num">اللفّات</th><th class="num">مرات الفوز</th><th class="num">حاول مرة أخرى</th></tr></thead>
                     <tbody>
                         @foreach (var d in Model.Activity)
                         {
@@ -105,22 +110,22 @@
     </section>
 
     <section class="card" aria-labelledby="pending-title">
-        <div class="card-head"><h2 id="pending-title">Awards to deliver</h2><a class="btn btn-xs" href="/admin/awards">All awards</a></div>
+        <div class="card-head"><h2 id="pending-title">جوائز في انتظار التسليم</h2><a class="btn btn-xs" href="/admin/awards">كل الجوائز المكتسبة</a></div>
         @if (Model.RecentPendingAwards.Count == 0)
         {
-            <p class="empty">Nothing waiting. New wins appear here.</p>
+            <p class="empty">لا توجد جوائز في الانتظار. ستظهر الجوائز الجديدة هنا.</p>
         }
         else
         {
             <table class="data stack">
-                <thead><tr><th>Prize</th><th>Customer</th><th>Won</th></tr></thead>
+                <thead><tr><th>الجائزة</th><th>العميل</th><th>وقت الفوز</th></tr></thead>
                 <tbody>
                     @foreach (var a in Model.RecentPendingAwards)
                     {
                         <tr>
-                            <td data-label="Prize"><span class="strong">@a.PrizeName</span> <partial name="_Tier" model="a.Tier" /></td>
-                            <td data-label="Customer"><a href="/admin/customers/@a.CustomerId">@a.CustomerName</a></td>
-                            <td data-label="Won" class="mono">@CairoTime.Format(a.CreatedAtUtc)</td>
+                            <td data-label="الجائزة"><span class="strong">@a.PrizeName</span> <partial name="_Tier" model="a.Tier" /></td>
+                            <td data-label="العميل"><a href="/admin/customers/@a.CustomerId">@a.CustomerName</a></td>
+                            <td data-label="وقت الفوز" class="mono">@AdminText.Date(a.CreatedAtUtc)</td>
                         </tr>
                     }
                 </tbody>
@@ -128,13 +133,13 @@
         }
         @if (Model.StockAlerts.Count > 0)
         {
-            <div class="card-head" style="margin-top:18px"><h3>Low stock</h3></div>
+            <div class="card-head" style="margin-top:18px"><h3>مخزون منخفض</h3></div>
             <ul class="legend-list" style="list-style:none;margin:0;padding:0;display:grid;gap:8px">
                 @foreach (var s in Model.StockAlerts)
                 {
                     <li class="alert @(s.Stock == 0 ? "alert-error" : "alert-warn")" style="padding:10px 12px">
                         <partial name="_Icon" model="@("triangle-alert")" />
-                        <span><a href="/admin/prizes/@s.Id/edit">@s.Name</a> — @(s.Stock == 0 ? "out of stock (excluded from the wheel)" : $"{s.Stock} left (alert at {s.Threshold})")</span>
+                        <span><a href="/admin/prizes/@s.Id/edit">@s.Name</a> — @(s.Stock == 0 ? "نفد المخزون (مستبعدة من العجلة)" : $"المتبقي {s.Stock} (التنبيه عند {s.Threshold})")</span>
                     </li>
                 }
             </ul>
@@ -143,25 +148,25 @@
 </div>
 
 <section class="card" aria-labelledby="recent-title">
-    <div class="card-head"><h2 id="recent-title">Recent spins</h2><a class="btn btn-xs" href="/admin/spins">All spins</a></div>
+    <div class="card-head"><h2 id="recent-title">أحدث اللفّات</h2><a class="btn btn-xs" href="/admin/spins">كل اللفّات</a></div>
     @if (Model.RecentAttempts.Count == 0)
     {
-        <p class="empty">No spins yet. Create a customer, give them their access code and they can play at the customer site.</p>
+        <p class="empty">لا توجد لفّات بعد. أضف عميلًا وأعطه كود الدخول، وسيمكنه اللعب من موقع العملاء.</p>
     }
     else
     {
         <div class="table-wrap">
             <table class="data stack">
-                <thead><tr><th>Time (Cairo)</th><th>Customer</th><th>Phone</th><th>Item</th><th>Result</th></tr></thead>
+                <thead><tr><th>الوقت (بتوقيت القاهرة)</th><th>العميل</th><th>رقم الموبايل</th><th>الشريحة</th><th>النتيجة</th></tr></thead>
                 <tbody>
                     @foreach (var a in Model.RecentAttempts)
                     {
                         <tr>
-                            <td data-label="Time" class="mono"><a href="/admin/spins/@a.Id">@CairoTime.Format(a.CreatedAtUtc)</a></td>
-                            <td data-label="Customer"><a href="/admin/customers/@a.CustomerId">@a.CustomerName</a></td>
-                            <td data-label="Phone" class="mono">@a.MaskedPhone</td>
-                            <td data-label="Item">@a.ItemName</td>
-                            <td data-label="Result"><span class="badge @(a.Kind == SpinResultKind.Won ? "badge-flame" : "badge-muted")">@(a.Kind == SpinResultKind.Won ? "Won" : "Try Again")</span></td>
+                            <td data-label="الوقت" class="mono"><a href="/admin/spins/@a.Id">@AdminText.Date(a.CreatedAtUtc)</a></td>
+                            <td data-label="العميل"><a href="/admin/customers/@a.CustomerId">@a.CustomerName</a></td>
+                            <td data-label="رقم الموبايل" class="mono"><bdi dir="ltr">@a.MaskedPhone</bdi></td>
+                            <td data-label="الشريحة">@a.ItemName</td>
+                            <td data-label="النتيجة"><span class="badge @(a.Kind == SpinResultKind.Won ? "badge-flame" : "badge-muted")">@AdminText.Result(a.Kind)</span></td>
                         </tr>
                     }
                 </tbody>

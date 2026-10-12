@@ -402,7 +402,7 @@ public class WebTests : IAsyncLifetime
 
         var bad = await PostFormAsync(NewClient(), "/admin/login", "/admin/login", new() { ["Email"] = email, ["Password"] = "wrong-password-123" });
         Assert.Equal(HttpStatusCode.OK, bad.StatusCode);
-        Assert.Contains("Invalid email or password", await bad.Content.ReadAsStringAsync(Ct));
+        Assert.Contains("البريد الإلكتروني أو كلمة المرور غير صحيحة", await bad.Content.ReadAsStringAsync(Ct));
     }
 
     [Fact]
@@ -438,7 +438,7 @@ public class WebTests : IAsyncLifetime
             new FormUrlEncodedContent(new Dictionary<string, string> { ["Email"] = "a@b.c", ["Password"] = "x" }), Ct); // no antiforgery token
         Assert.Equal(HttpStatusCode.BadRequest, res.StatusCode);
         var html = await res.Content.ReadAsStringAsync(Ct);
-        Assert.Contains("Form expired", html);
+        Assert.Contains("انتهت صلاحية النموذج", html);
         Assert.DoesNotContain("class=\"sidebar\"", html);
     }
 
@@ -492,7 +492,7 @@ public class WebTests : IAsyncLifetime
         var refused = await admin.PostAsync(editUrl, new FormUrlEncodedContent(fields), Ct);
         var html = await refused.Content.ReadAsStringAsync(Ct);
         Assert.Equal(HttpStatusCode.OK, refused.StatusCode);
-        Assert.Contains("can&#x27;t absorb that difference", html);
+        Assert.Contains("لا تكفي لتعويض هذا الفرق", html);
     }
 
     [Fact]
@@ -528,7 +528,7 @@ public class WebTests : IAsyncLifetime
         Assert.Contains("class=\"insecure-banner\"", await client.GetStringAsync("/", Ct));
         var adminLogin = await client.GetStringAsync("/admin/login", Ct);
         Assert.Contains("class=\"insecure-banner\"", adminLogin);
-        Assert.Contains("Do not enter real customer codes", adminLogin);
+        Assert.Contains("متكتبش أكواد حقيقية", adminLogin); // the admin is Arabic-only
     }
 
     [Fact]

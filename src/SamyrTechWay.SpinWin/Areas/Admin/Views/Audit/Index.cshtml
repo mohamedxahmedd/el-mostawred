@@ -1,30 +1,30 @@
 @model Paged<AuditRow>
 @{
-    ViewData["Title"] = "Audit log";
+    ViewData["Title"] = "سجل العمليات";
     ViewData["Section"] = "audit";
     Func<int, string> PageUrl = p => "/admin/audit?page=" + p;
 }
 <section class="card">
-    <p class="hint" style="margin-bottom:12px">Every admin change: customers, credits, codes (never the code itself), prizes, allocations, deliveries and settings.</p>
+    <p class="hint" style="margin-bottom:12px">كل تغيير يقوم به المدير: العملاء، اللفّات، أكواد الدخول (دون تسجيل الكود نفسه أبدًا)، الجوائز، توزيع النسب، التسليمات والإعدادات.</p>
     @if (Model.Items.Count == 0)
     {
-        <p class="empty">No admin actions recorded yet.</p>
+        <p class="empty">لم تُسجَّل أي عمليات بعد.</p>
     }
     else
     {
         <div class="table-wrap">
             <table class="data stack">
-                <thead><tr><th>Time</th><th>Admin</th><th>Action</th><th>Target</th><th>Details</th></tr></thead>
+                <thead><tr><th>الوقت</th><th>المدير</th><th>الإجراء</th><th>العنصر</th><th>التفاصيل</th></tr></thead>
                 <tbody>
                     @foreach (var a in Model.Items)
                     {
                         var link = a.TargetType switch { "Customer" => $"/admin/customers/{a.TargetId}", "WheelItem" when a.TargetId is not null => $"/admin/prizes/{a.TargetId}/edit", _ => null };
                         <tr>
-                            <td data-label="Time" class="mono">@CairoTime.Format(a.CreatedAtUtc, "dd MMM yyyy HH:mm:ss")</td>
-                            <td data-label="Admin">@a.AdminName</td>
-                            <td data-label="Action"><span class="badge badge-muted">@a.Action</span></td>
-                            <td data-label="Target">@if (link is not null) { <a href="@link">@a.TargetType #@a.TargetId</a> } else { @a.TargetType }</td>
-                            <td data-label="Details" class="mono" style="max-width:420px;word-break:break-word">@a.Details</td>
+                            <td data-label="الوقت" class="mono">@AdminText.Date(a.CreatedAtUtc, "d MMM yyyy، HH:mm:ss")</td>
+                            <td data-label="المدير"><bdi>@a.AdminName</bdi></td>
+                            <td data-label="الإجراء"><span class="badge badge-muted">@AdminText.Action(a.Action)</span></td>
+                            <td data-label="العنصر">@if (link is not null) { <a href="@link">@AdminText.Target(a.TargetType) <bdi dir="ltr">#@a.TargetId</bdi></a> } else { @AdminText.Target(a.TargetType) }</td>
+                            <td data-label="التفاصيل" class="mono" style="max-width:420px;word-break:break-word"><bdi dir="ltr">@a.Details</bdi></td>
                         </tr>
                     }
                 </tbody>

@@ -34,7 +34,7 @@ public sealed class WheelItemAdminService(AppDbContext db, AuditService audit, T
     public const string WeightField = "WeightPercent";
 
     public const string RebalanceHint =
-        "Active wheel items must total exactly 100.00%. Use the Probability allocation table on the Prizes page to change weights or activation together.";
+        "مجموع نسب العناصر المفعّلة على العجلة يجب أن يكون 100.00% بالضبط. استخدم جدول توزيع النسب في صفحة الجوائز لتغيير النسب أو التفعيل معًا.";
 
     public async Task<ServiceResult<WheelItem>> CreateAsync(WheelItemInput input, NewImage? image, AdminActor actor, CancellationToken ct = default)
     {
@@ -46,9 +46,9 @@ public sealed class WheelItemAdminService(AppDbContext db, AuditService audit, T
         {
             var total = all.Where(i => i.IsActive && !i.IsArchived).Sum(i => i.ProbabilityBasisPoints) + input.BasisPoints;
             if (total != WheelOdds.FullAllocation)
-                return ServiceResult<WheelItem>.Fail($"Activating this item would make the active total {Percent(total)}. {RebalanceHint}", "IsActive");
+                return ServiceResult<WheelItem>.Fail($"تفعيل هذا العنصر سيجعل مجموع النسب المفعّلة {Percent(total)}. {RebalanceHint}", "IsActive");
             if (input.Kind == WheelItemKind.TryAgain && all.Any(i => i.IsActive && !i.IsArchived && i.Kind == WheelItemKind.TryAgain))
-                return ServiceResult<WheelItem>.Fail("Only one Try Again item can be active.", "IsActive");
+                return ServiceResult<WheelItem>.Fail("يمكن تفعيل عنصر واحد فقط من نوع «حاول مرة أخرى».", "IsActive");
         }
 
         // Item and its audit row commit together.
@@ -76,8 +76,8 @@ public sealed class WheelItemAdminService(AppDbContext db, AuditService audit, T
     public async Task<ServiceResult<int?>> UpdateAsync(int id, WheelItemInput input, NewImage? image, bool removeImage, byte[] rowVersion, AdminActor actor, CancellationToken ct = default)
     {
         var item = await db.WheelItems.FirstOrDefaultAsync(i => i.Id == id, ct);
-        if (item is null) return ServiceResult<int?>.Fail("Wheel item not found.");
-        if (item.IsArchived) return ServiceResult<int?>.Fail("Restore this item before editing it.");
+        if (item is null) return ServiceResult<int?>.Fail("العنصر غير موجود.");
+        if (item.IsArchived) return ServiceResult<int?>.Fail("استعد هذا العنصر أولًا قبل تعديله.");
 
         input = input with { Kind = item.Kind }; // kind is fixed after creation
         var error = Validate(input);
@@ -85,7 +85,7 @@ public sealed class WheelItemAdminService(AppDbContext db, AuditService audit, T
 
         var others = await db.WheelItems.AsNoTracking().Where(i => i.Id != id && i.IsActive && !i.IsArchived).ToListAsync(ct);
         if (input.IsActive && item.Kind == WheelItemKind.TryAgain && others.Any(i => i.Kind == WheelItemKind.TryAgain))
-            return ServiceResult<int?>.Fail("Only one Try Again item can be active.", "IsActive");
+            return ServiceResult<int?>.Fail("يمكن تفعيل عنصر واحد فقط من نوع «حاول مرة أخرى».", "IsActive");
 
         var now = clock.GetUtcNow().UtcDateTime;
         WheelItem? retry = null;
@@ -96,18 +96,18 @@ public sealed class WheelItemAdminService(AppDbContext db, AuditService audit, T
             if (total != WheelOdds.FullAllocation)
             {
                 if (item.Kind == WheelItemKind.TryAgain)
-                    return ServiceResult<int?>.Fail($"This change would make the active total {Percent(total)}. To change Try Again's weight, use the allocation table on the Prizes page.", WeightField);
+                    return ServiceResult<int?>.Fail($"هذا التغيير سيجعل مجموع النسب المفعّلة {Percent(total)}. لتغيير نسبة «حاول مرة أخرى»، استخدم جدول توزيع النسب في صفحة الجوائز.", WeightField);
                 if (!input.IsActive && !others.Any(i => i.Kind == WheelItemKind.Prize))
-                    return ServiceResult<int?>.Fail("At least one real prize must stay active, or nobody could win. Activate another prize first.", "IsActive");
+                    return ServiceResult<int?>.Fail("يجب أن تبقى جائزة حقيقية واحدة على الأقل مفعّلة، وإلا لن يفوز أحد. فعّل جائزة أخرى أولًا.", "IsActive");
 
                 var activeRetry = others.FirstOrDefault(i => i.Kind == WheelItemKind.TryAgain);
                 var adjusted = activeRetry is null ? 0 : activeRetry.ProbabilityBasisPoints + (WheelOdds.FullAllocation - total);
                 if (activeRetry is null || adjusted <= 0 || adjusted > WheelOdds.FullAllocation)
                 {
                     var why = activeRetry is null
-                        ? "There is no active Try Again slice to balance against."
-                        : $"Try Again ({Percent(activeRetry.ProbabilityBasisPoints)}) can't absorb that difference.";
-                    return ServiceResult<int?>.Fail($"This change would make the active total {Percent(total)}. {why} {RebalanceHint}", WeightField);
+                        ? "لا توجد شريحة «حاول مرة أخرى» مفعّلة لتعويض الفرق."
+                        : $"شريحة «حاول مرة أخرى» ({Percent(activeRetry.ProbabilityBasisPoints)}) لا تكفي لتعويض هذا الفرق.";
+                    return ServiceResult<int?>.Fail($"هذا التغيير سيجعل مجموع النسب المفعّلة {Percent(total)}. {why} {RebalanceHint}", WeightField);
                 }
 
                 // The new weight is computed from the snapshot above, so the save must fail if Try Again changed since then.
@@ -146,28 +146,28 @@ public sealed class WheelItemAdminService(AppDbContext db, AuditService audit, T
         catch (DbUpdateConcurrencyException)
         {
             return ServiceResult<int?>.Fail(retry is null
-                ? "This item changed since you opened it (for example, stock was reserved by a win). Reload and try again."
-                : "This item or the Try Again slice changed since you opened it (for example, someone saved the allocation table). Reload and try again.");
+                ? "تم تعديل هذا العنصر بعد أن فتحته (مثلًا حُجز من المخزون بسبب فوز). حدّث الصفحة وحاول مرة أخرى."
+                : "تم تعديل هذا العنصر أو شريحة «حاول مرة أخرى» بعد أن فتحته (مثلًا حفظ شخص آخر جدول توزيع النسب). حدّث الصفحة وحاول مرة أخرى.");
         }
         catch (DbUpdateException ex) when (DbErrors.IsUniqueViolation(ex))
         {
-            return ServiceResult<int?>.Fail("Only one Try Again item can be active.", "IsActive");
+            return ServiceResult<int?>.Fail("يمكن تفعيل عنصر واحد فقط من نوع «حاول مرة أخرى».", "IsActive");
         }
     }
 
     /// <summary>Saves weights, activation and order for all live items together. Active total must be exactly 10,000.</summary>
     public async Task<ServiceResult> SaveAllocationAsync(IReadOnlyList<AllocationRow> rows, AdminActor actor, CancellationToken ct = default)
     {
-        if (rows.Count == 0) return ServiceResult.Fail("Nothing to save.");
-        if (rows.Select(r => r.Id).Distinct().Count() != rows.Count) return ServiceResult.Fail("Duplicate rows submitted.");
+        if (rows.Count == 0) return ServiceResult.Fail("لا يوجد شيء للحفظ.");
+        if (rows.Select(r => r.Id).Distinct().Count() != rows.Count) return ServiceResult.Fail("تم إرسال صفوف مكررة.");
         if (rows.Any(r => r.BasisPoints is < 0 or > WheelOdds.FullAllocation))
-            return ServiceResult.Fail("Each weight must be between 0.00% and 100.00%.");
+            return ServiceResult.Fail("كل نسبة يجب أن تكون بين 0.00% و100.00%.");
         if (rows.Any(r => r.IsActive && r.BasisPoints <= 0))
-            return ServiceResult.Fail("Active items need a weight above 0.00%. Deactivate items you want off the wheel.");
+            return ServiceResult.Fail("العناصر المفعّلة تحتاج نسبة أكبر من 0.00%. أوقف تفعيل العناصر التي تريد إخراجها من العجلة.");
 
         var total = rows.Where(r => r.IsActive).Sum(r => r.BasisPoints);
         if (total != WheelOdds.FullAllocation)
-            return ServiceResult.Fail($"Active weights total {Percent(total)}; they must total exactly 100.00%.");
+            return ServiceResult.Fail($"مجموع النسب المفعّلة {Percent(total)}، ويجب أن يكون 100.00% بالضبط.");
 
         try
         {
@@ -176,13 +176,13 @@ public sealed class WheelItemAdminService(AppDbContext db, AuditService audit, T
                 var ids = rows.Select(r => r.Id).ToList();
                 var items = await db.WheelItems.Where(i => !i.IsArchived).ToListAsync(token);
                 if (items.Count != rows.Count || items.Any(i => !ids.Contains(i.Id)))
-                    return ServiceResult.Fail("The prize list changed while you were editing. Reload and try again.");
+                    return ServiceResult.Fail("تغيّرت قائمة الجوائز أثناء التعديل. حدّث الصفحة وحاول مرة أخرى.");
 
                 var byId = rows.ToDictionary(r => r.Id);
                 if (items.Count(i => i.Kind == WheelItemKind.TryAgain && byId[i.Id].IsActive) > 1)
-                    return ServiceResult.Fail("Only one Try Again item can be active.");
+                    return ServiceResult.Fail("يمكن تفعيل عنصر واحد فقط من نوع «حاول مرة أخرى».");
                 if (!items.Any(i => i.Kind == WheelItemKind.Prize && byId[i.Id].IsActive))
-                    return ServiceResult.Fail("At least one real prize must be active.");
+                    return ServiceResult.Fail("يجب تفعيل جائزة حقيقية واحدة على الأقل.");
 
                 var now = clock.GetUtcNow().UtcDateTime;
                 var changes = new List<object>();
@@ -216,7 +216,7 @@ public sealed class WheelItemAdminService(AppDbContext db, AuditService audit, T
         }
         catch (DbUpdateException ex) when (DbErrors.IsUniqueViolation(ex))
         {
-            return ServiceResult.Fail("Only one Try Again item can be active.");
+            return ServiceResult.Fail("يمكن تفعيل عنصر واحد فقط من نوع «حاول مرة أخرى».");
         }
     }
 
@@ -224,9 +224,9 @@ public sealed class WheelItemAdminService(AppDbContext db, AuditService audit, T
     public async Task<ServiceResult> ArchiveAsync(int id, AdminActor actor, CancellationToken ct = default)
     {
         var item = await db.WheelItems.FirstOrDefaultAsync(i => i.Id == id, ct);
-        if (item is null) return ServiceResult.Fail("Wheel item not found.");
+        if (item is null) return ServiceResult.Fail("العنصر غير موجود.");
         if (item.IsArchived) return ServiceResult.Success;
-        if (item.IsActive) return ServiceResult.Fail("Deactivate this item in the allocation table before archiving it.");
+        if (item.IsActive) return ServiceResult.Fail("أوقف تفعيل هذا العنصر من جدول توزيع النسب قبل أرشفته.");
         item.IsArchived = true;
         item.UpdatedAtUtc = clock.GetUtcNow().UtcDateTime;
         audit.Record(actor, "prize.archive", "WheelItem", id.ToString(), new { item.NameEn });
@@ -237,7 +237,7 @@ public sealed class WheelItemAdminService(AppDbContext db, AuditService audit, T
     public async Task<ServiceResult> RestoreAsync(int id, AdminActor actor, CancellationToken ct = default)
     {
         var item = await db.WheelItems.FirstOrDefaultAsync(i => i.Id == id, ct);
-        if (item is null) return ServiceResult.Fail("Wheel item not found.");
+        if (item is null) return ServiceResult.Fail("العنصر غير موجود.");
         if (!item.IsArchived) return ServiceResult.Success;
         item.IsArchived = false;
         item.IsActive = false;
@@ -285,16 +285,16 @@ public sealed class WheelItemAdminService(AppDbContext db, AuditService audit, T
 
     private static (string Message, string Field)? Validate(WheelItemInput input)
     {
-        if (string.IsNullOrWhiteSpace(input.NameEn)) return ("English name is required.", "NameEn");
-        if (!Enum.IsDefined(input.Kind)) return ("Choose an item type.", "Kind");
-        if (!Enum.IsDefined(input.Tier)) return ("Choose a celebration tier.", "Tier");
-        if (input.BasisPoints is < 0 or > WheelOdds.FullAllocation) return ("Weight must be between 0.00% and 100.00%.", WeightField);
-        if (input.IsActive && input.BasisPoints == 0) return ("Active items need a weight above 0.00%.", WeightField);
-        if (input.StockQuantity is < 0) return ("Stock cannot be negative. Leave it empty for unlimited.", "StockQuantity");
-        if (input.LowStockThreshold is < 0 or > 1000) return ("Low-stock alert must be between 0 and 1000.", "LowStockThreshold");
-        if (input.IconKey is not null && !PrizeIcons.IsValid(input.IconKey)) return ("Choose an icon from the list.", "IconKey");
-        if (!ColorKeys.Contains(input.ColorKey)) return ("Choose a wedge colour from the list.", "ColorKey");
-        if (input.DisplayOrder is < 0 or > 999) return ("Display order must be between 0 and 999.", "DisplayOrder");
+        if (string.IsNullOrWhiteSpace(input.NameEn)) return ("الاسم بالإنجليزية مطلوب.", "NameEn");
+        if (!Enum.IsDefined(input.Kind)) return ("اختر نوع العنصر.", "Kind");
+        if (!Enum.IsDefined(input.Tier)) return ("اختر مستوى الاحتفال.", "Tier");
+        if (input.BasisPoints is < 0 or > WheelOdds.FullAllocation) return ("النسبة يجب أن تكون بين 0.00% و100.00%.", WeightField);
+        if (input.IsActive && input.BasisPoints == 0) return ("العناصر المفعّلة تحتاج نسبة أكبر من 0.00%.", WeightField);
+        if (input.StockQuantity is < 0) return ("المخزون لا يمكن أن يكون سالبًا. اتركه فارغًا ليكون غير محدود.", "StockQuantity");
+        if (input.LowStockThreshold is < 0 or > 1000) return ("تنبيه انخفاض المخزون يجب أن يكون بين 0 و1000.", "LowStockThreshold");
+        if (input.IconKey is not null && !PrizeIcons.IsValid(input.IconKey)) return ("اختر أيقونة من القائمة.", "IconKey");
+        if (!ColorKeys.Contains(input.ColorKey)) return ("اختر لون الشريحة من القائمة.", "ColorKey");
+        if (input.DisplayOrder is < 0 or > 999) return ("ترتيب العرض يجب أن يكون بين 0 و999.", "DisplayOrder");
         return null;
     }
 

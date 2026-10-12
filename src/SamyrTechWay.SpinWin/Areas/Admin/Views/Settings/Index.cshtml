@@ -1,48 +1,48 @@
 @model SettingsForm
 @{
-    ViewData["Title"] = "Settings";
+    ViewData["Title"] = "الإعدادات";
     ViewData["Section"] = "settings";
 }
 <form class="card" method="post" asp-antiforgery="true" action="/admin/settings" novalidate data-busy-form>
     <input type="hidden" asp-for="RowVersion" />
     <div asp-validation-summary="ModelOnly" class="alert alert-error" role="alert" style="margin-bottom:16px"></div>
     <div class="form-grid">
-        <p class="section-title span-2">Campaign</p>
+        <p class="section-title span-2">الحملة</p>
         <div class="field span-2">
-            <label class="check"><input type="checkbox" asp-for="CampaignEnabled" /><span class="switch" aria-hidden="true"></span> Campaign open — customers can spin</label>
-            <span class="hint">Pausing stops all new spins immediately. Customers can still sign in and see their prizes; no credits are used.</span>
+            <label class="check"><input type="checkbox" asp-for="CampaignEnabled" /><span class="switch" aria-hidden="true"></span> الحملة مفتوحة — يمكن للعملاء اللفّ</label>
+            <span class="hint">الإيقاف المؤقت يمنع أي لفّة جديدة فورًا. يظل بإمكان العملاء تسجيل الدخول ومشاهدة جوائزهم، ولا تُخصم أي لفّات.</span>
         </div>
-        <div class="field"><label class="label" asp-for="PausedMessageEn"></label><textarea class="textarea" asp-for="PausedMessageEn" rows="2"></textarea><span class="field-error" asp-validation-for="PausedMessageEn"></span></div>
+        <div class="field"><label class="label" asp-for="PausedMessageEn"></label><textarea class="textarea" asp-for="PausedMessageEn" rows="2" dir="ltr" lang="en"></textarea><span class="field-error" asp-validation-for="PausedMessageEn"></span></div>
         <div class="field"><label class="label" asp-for="PausedMessageAr"></label><textarea class="textarea" asp-for="PausedMessageAr" rows="2" dir="rtl" lang="ar"></textarea><span class="field-error" asp-validation-for="PausedMessageAr"></span></div>
 
-        <p class="section-title span-2">Copy</p>
-        <div class="field span-2"><label class="label" asp-for="SiteTitle"></label><input class="input" asp-for="SiteTitle" /><span class="field-error" asp-validation-for="SiteTitle"></span></div>
-        <div class="field"><label class="label" asp-for="PromoSubheadingEn"></label><textarea class="textarea" asp-for="PromoSubheadingEn" rows="2"></textarea><span class="field-error" asp-validation-for="PromoSubheadingEn"></span></div>
+        <p class="section-title span-2">النصوص</p>
+        <div class="field span-2"><label class="label" asp-for="SiteTitle"></label><input class="input" asp-for="SiteTitle" dir="auto" /><span class="field-error" asp-validation-for="SiteTitle"></span></div>
+        <div class="field"><label class="label" asp-for="PromoSubheadingEn"></label><textarea class="textarea" asp-for="PromoSubheadingEn" rows="2" dir="ltr" lang="en"></textarea><span class="field-error" asp-validation-for="PromoSubheadingEn"></span></div>
         <div class="field"><label class="label" asp-for="PromoSubheadingAr"></label><textarea class="textarea" asp-for="PromoSubheadingAr" rows="2" dir="rtl" lang="ar"></textarea><span class="field-error" asp-validation-for="PromoSubheadingAr"></span></div>
-        <div class="field"><label class="label" asp-for="PickupInstructionsEn"></label><textarea class="textarea" asp-for="PickupInstructionsEn" rows="3"></textarea><span class="field-error" asp-validation-for="PickupInstructionsEn"></span></div>
+        <div class="field"><label class="label" asp-for="PickupInstructionsEn"></label><textarea class="textarea" asp-for="PickupInstructionsEn" rows="3" dir="ltr" lang="en"></textarea><span class="field-error" asp-validation-for="PickupInstructionsEn"></span></div>
         <div class="field"><label class="label" asp-for="PickupInstructionsAr"></label><textarea class="textarea" asp-for="PickupInstructionsAr" rows="3" dir="rtl" lang="ar"></textarea><span class="field-error" asp-validation-for="PickupInstructionsAr"></span></div>
-        <div class="field"><label class="label" asp-for="AnnouncementEn"></label><input class="input" asp-for="AnnouncementEn" placeholder="Optional banner on the landing and wheel pages" /><span class="field-error" asp-validation-for="AnnouncementEn"></span></div>
-        <div class="field"><label class="label" asp-for="AnnouncementAr"></label><input class="input" asp-for="AnnouncementAr" dir="rtl" lang="ar" /><span class="field-error" asp-validation-for="AnnouncementAr"></span></div>
+        <div class="field"><label class="label" asp-for="AnnouncementEn"></label><input class="input" asp-for="AnnouncementEn" dir="ltr" lang="en" placeholder="شريط اختياري يظهر في الصفحة الرئيسية وصفحة العجلة" /><span class="field-error" asp-validation-for="AnnouncementEn"></span></div>
+        <div class="field"><label class="label" asp-for="AnnouncementAr"></label><input class="input" asp-for="AnnouncementAr" dir="rtl" lang="ar" placeholder="شريط اختياري يظهر في الصفحة الرئيسية وصفحة العجلة" /><span class="field-error" asp-validation-for="AnnouncementAr"></span></div>
 
-        <p class="section-title span-2">Experience</p>
+        <p class="section-title span-2">تجربة العميل</p>
         <div class="field">
             <label class="label" asp-for="DefaultLanguage"></label>
-            <select class="select" asp-for="DefaultLanguage"><option value="ar">Arabic (RTL)</option><option value="en">English</option></select>
+            <select class="select" asp-for="DefaultLanguage"><option value="ar">العربية</option><option value="en">الإنجليزية</option></select>
         </div>
         <div class="field">
             <label class="label" asp-for="AnimationIntensity"></label>
             <select class="select" asp-for="AnimationIntensity">
-                <option value="Subtle">Subtle — fewer particles</option>
-                <option value="Standard">Standard</option>
-                <option value="Cinematic">Cinematic — more particles</option>
+                <option value="Subtle">@AdminText.Intensity(AnimationIntensity.Subtle) — مؤثرات أقل</option>
+                <option value="Standard">@AdminText.Intensity(AnimationIntensity.Standard)</option>
+                <option value="Cinematic">@AdminText.Intensity(AnimationIntensity.Cinematic) — مؤثرات أكثر</option>
             </select>
         </div>
         <div class="field"><label class="label" asp-for="SpinDurationMinMs"></label><input class="input" asp-for="SpinDurationMinMs" type="number" min="1500" max="12000" step="100" /><span class="field-error" asp-validation-for="SpinDurationMinMs"></span></div>
         <div class="field"><label class="label" asp-for="SpinDurationMaxMs"></label><input class="input" asp-for="SpinDurationMaxMs" type="number" min="1500" max="12000" step="100" /><span class="field-error" asp-validation-for="SpinDurationMaxMs"></span></div>
         <div class="field span-2">
-            <label class="check"><input type="checkbox" asp-for="SoundEnabledByDefault" /><span class="switch" aria-hidden="true"></span> Sound on by default (customers can always mute; sound never autoplays)</label>
+            <label class="check"><input type="checkbox" asp-for="SoundEnabledByDefault" /><span class="switch" aria-hidden="true"></span> الصوت مفعّل افتراضيًا (يمكن للعميل كتم الصوت في أي وقت، ولا يعمل الصوت تلقائيًا أبدًا)</label>
         </div>
-        <p class="hint span-2"><partial name="_Icon" model="@("lock")" /> The SAMYR TECH WAY logo is a protected static asset and cannot be changed or removed from here.</p>
+        <p class="hint span-2"><partial name="_Icon" model="@("lock")" /> شعار SAMYR TECH WAY ملف ثابت ومحمي، ولا يمكن تغييره أو حذفه من هنا.</p>
     </div>
-    <div class="form-actions" style="margin-top:18px"><button type="submit" class="btn btn-primary">Save settings</button></div>
+    <div class="form-actions" style="margin-top:18px"><button type="submit" class="btn btn-primary">حفظ الإعدادات</button></div>
 </form>

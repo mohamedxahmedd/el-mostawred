@@ -2,7 +2,7 @@
 @{
     var isNew = Model.Id is null;
     var retry = Model.Kind == WheelItemKind.TryAgain;
-    ViewData["Title"] = isNew ? (retry ? "New Try Again item" : "New prize") : $"Edit {Model.NameEn}";
+    ViewData["Title"] = isNew ? (retry ? "عنصر «حاول مرة أخرى» جديد" : "جائزة جديدة") : $"تعديل {AdminText.Name(Model.NameEn, Model.NameAr)}";
     ViewData["Section"] = "prizes";
     var action = isNew ? "/admin/prizes/create" : $"/admin/prizes/{Model.Id}/edit";
 }
@@ -12,24 +12,24 @@
     <div asp-validation-summary="ModelOnly" class="alert alert-error" role="alert" style="margin-bottom:16px"></div>
     @if (retry)
     {
-        <p class="alert alert-info" style="margin-bottom:16px"><partial name="_Icon" model="@("info")" /><span>Try Again is not a gift. When it lands, the spent credit is refunded in the same transaction and the customer can spin again. It has no stock and creates no award. Only one Try Again item can be active.</span></p>
+        <p class="alert alert-info" style="margin-bottom:16px"><partial name="_Icon" model="@("info")" /><span>«حاول مرة أخرى» ليست جائزة. عندما تقف عليها العجلة تُسترد اللفّة المستخدمة في نفس العملية ويستطيع العميل اللفّ مرة أخرى. ليس لها مخزون ولا تُسجَّل كجائزة مكتسبة. يمكن تفعيل عنصر واحد فقط من نوع «حاول مرة أخرى».</span></p>
     }
     <div class="form-grid">
-        <p class="section-title span-2">Name &amp; description</p>
+        <p class="section-title span-2">الاسم والوصف</p>
         <div class="field"><label class="label" asp-for="NameEn"></label><input class="input" asp-for="NameEn" /><span class="field-error" asp-validation-for="NameEn"></span></div>
         <div class="field"><label class="label" asp-for="NameAr"></label><input class="input" asp-for="NameAr" dir="rtl" lang="ar" /><span class="field-error" asp-validation-for="NameAr"></span></div>
         <div class="field"><label class="label" asp-for="DescriptionEn"></label><input class="input" asp-for="DescriptionEn" /><span class="field-error" asp-validation-for="DescriptionEn"></span></div>
         <div class="field"><label class="label" asp-for="DescriptionAr"></label><input class="input" asp-for="DescriptionAr" dir="rtl" lang="ar" /><span class="field-error" asp-validation-for="DescriptionAr"></span></div>
 
-        <p class="section-title span-2">Odds &amp; availability</p>
+        <p class="section-title span-2">النسبة والتوفر</p>
         <div class="field">
             <label class="label" asp-for="WeightPercent"></label>
             <input class="input" asp-for="WeightPercent" type="number" min="0" max="100" step="0.01" inputmode="decimal" />
             <span class="hint">@(Model.Id is null
-                ? "New items usually start inactive: switch them on together in the allocation table, where active weights must total 100.00%."
+                ? "العناصر الجديدة تبدأ عادةً غير مفعّلة: فعّلها معًا من جدول توزيع النسب، حيث يجب أن يكون مجموع نسب العناصر المفعّلة 100.00%."
                 : Model.Kind == WheelItemKind.Prize
-                    ? "Active weights always total 100.00%: when you change this one, Try Again takes up the difference automatically. To change several at once, use the allocation table."
-                    : "Active weights must total 100.00%. To change Try Again, use the allocation table on the Prizes page.")</span>
+                    ? "مجموع نسب العناصر المفعّلة دائمًا 100.00%: عند تغيير هذه النسبة، يأخذ عنصر «حاول مرة أخرى» الفرق تلقائيًا. لتغيير أكثر من نسبة معًا، استخدم جدول توزيع النسب."
+                    : "مجموع نسب العناصر المفعّلة يجب أن يكون 100.00%. لتغيير نسبة «حاول مرة أخرى»، استخدم جدول توزيع النسب في صفحة الجوائز.")</span>
             <span class="field-error" asp-validation-for="WeightPercent"></span>
         </div>
         <div class="field">
@@ -41,8 +41,8 @@
         {
             <div class="field">
                 <label class="label" asp-for="StockQuantity"></label>
-                <input class="input" asp-for="StockQuantity" type="number" min="0" placeholder="Unlimited" />
-                <span class="hint">Reserved the moment a customer wins. At 0 the prize leaves the wheel automatically.</span>
+                <input class="input" asp-for="StockQuantity" type="number" min="0" placeholder="غير محدود" />
+                <span class="hint">يُحجز من المخزون لحظة فوز العميل. عندما يصل إلى 0 تخرج الجائزة من العجلة تلقائيًا.</span>
                 <span class="field-error" asp-validation-for="StockQuantity"></span>
             </div>
             <div class="field">
@@ -52,31 +52,31 @@
             </div>
         }
         <div class="field span-2">
-            <label class="check"><input type="checkbox" asp-for="IsActive" /><span class="switch" aria-hidden="true"></span> Active on the wheel</label>
+            <label class="check"><input type="checkbox" asp-for="IsActive" /><span class="switch" aria-hidden="true"></span> مفعّلة على العجلة</label>
             <span class="field-error" asp-validation-for="IsActive"></span>
         </div>
 
-        <p class="section-title span-2">Look &amp; reveal</p>
+        <p class="section-title span-2">الشكل وطريقة الظهور</p>
         <div class="field span-2">
-            <span class="label">Image</span>
+            <span class="label">الصورة</span>
             <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
                 <div class="image-preview" id="image-preview">
-                    @if (Model.CurrentImageUrl is not null) { <img src="@Model.CurrentImageUrl" alt="Current image" /> }
-                    else { <span class="hint">No image</span> }
+                    @if (Model.CurrentImageUrl is not null) { <img src="@Model.CurrentImageUrl" alt="الصورة الحالية" /> }
+                    else { <span class="hint">لا توجد صورة</span> }
                 </div>
                 <div style="display:grid;gap:8px">
                     <input class="input" asp-for="Image" type="file" accept="image/jpeg,image/png,image/webp" style="min-height:auto;padding:10px" />
-                    <span class="hint">JPEG, PNG or WebP up to 2 MB. Square photos look best. Without an image the icon is used.</span>
+                    <span class="hint">JPEG أو PNG أو WebP بحد أقصى 2 ميجابايت. الصور المربعة تظهر بشكل أفضل. بدون صورة تُستخدم الأيقونة.</span>
                     @if (Model.CurrentImageUrl is not null)
                     {
-                        <label class="check"><input type="checkbox" asp-for="RemoveImage" /><span class="switch" aria-hidden="true"></span> Remove current image</label>
+                        <label class="check"><input type="checkbox" asp-for="RemoveImage" /><span class="switch" aria-hidden="true"></span> حذف الصورة الحالية</label>
                     }
                     <span class="field-error" asp-validation-for="Image"></span>
                 </div>
             </div>
         </div>
         <fieldset class="field span-2" style="border:0;padding:0;margin:0">
-            <legend class="label" style="margin-bottom:8px">Built-in icon</legend>
+            <legend class="label" style="margin-bottom:8px">أيقونة جاهزة</legend>
             <div class="icon-picker">
                 @foreach (var (key, label) in PrizeIcons.All)
                 {
@@ -86,11 +86,11 @@
             <span class="field-error" asp-validation-for="IconKey"></span>
         </fieldset>
         <fieldset class="field span-2" style="border:0;padding:0;margin:0">
-            <legend class="label" style="margin-bottom:8px">Wedge colour</legend>
+            <legend class="label" style="margin-bottom:8px">لون الشريحة</legend>
             <div class="color-picker">
                 @foreach (var key in WheelItemAdminService.ColorKeys)
                 {
-                    <label><input type="radio" name="ColorKey" value="@key" @(Model.ColorKey == key ? "checked" : "") /><span class="sw"><i class="swatch-@key"></i>@key</span></label>
+                    <label><input type="radio" name="ColorKey" value="@key" @(Model.ColorKey == key ? "checked" : "") /><span class="sw"><i class="swatch-@key"></i>@(key switch { "ruby" => "أحمر ياقوتي", "flame" => "لهبي", "ember" => "جمري", "amber" => "كهرماني", "gold" => "ذهبي", "onyx" => "أسود", _ => key })</span></label>
                 }
             </div>
         </fieldset>
@@ -99,26 +99,26 @@
             <div class="field">
                 <label class="label" asp-for="Tier"></label>
                 <select class="select" asp-for="Tier">
-                    <option value="Standard">Standard — soft glow &amp; confetti</option>
-                    <option value="Rare">Rare — gold sparks, spotlight, chimes</option>
-                    <option value="Epic">Epic — phoenix fire burst, beams, fanfare</option>
+                    <option value="Standard">@AdminText.Tier(CelebrationTier.Standard) — توهج خفيف وقصاصات ملوّنة</option>
+                    <option value="Rare">@AdminText.Tier(CelebrationTier.Rare) — شرارات ذهبية وإضاءة مركّزة وأجراس</option>
+                    <option value="Epic">@AdminText.Tier(CelebrationTier.Epic) — انفجار نار العنقاء وأشعة وموسيقى احتفالية</option>
                 </select>
             </div>
             <div></div>
-            <div class="field"><label class="label" asp-for="CollectionNoteEn"></label><textarea class="textarea" asp-for="CollectionNoteEn" rows="2" placeholder="Leave empty to use the default pickup instructions"></textarea></div>
+            <div class="field"><label class="label" asp-for="CollectionNoteEn"></label><textarea class="textarea" asp-for="CollectionNoteEn" rows="2" placeholder="اتركها فارغة لاستخدام تعليمات الاستلام الافتراضية"></textarea></div>
             <div class="field"><label class="label" asp-for="CollectionNoteAr"></label><textarea class="textarea" asp-for="CollectionNoteAr" rows="2" dir="rtl" lang="ar"></textarea></div>
         }
     </div>
     <div class="form-actions" style="margin-top:20px">
         @if (!isNew && !Model.IsActive)
         {
-            <button type="submit" class="btn btn-danger" form="archive-form"><partial name="_Icon" model="@("archive")" /> Archive</button>
+            <button type="submit" class="btn btn-danger" form="archive-form"><partial name="_Icon" model="@("archive")" /> أرشفة</button>
         }
-        <a class="btn btn-ghost" href="/admin/prizes">Cancel</a>
-        <button type="submit" class="btn btn-primary">@(isNew ? "Create item" : "Save changes")</button>
+        <a class="btn btn-ghost" href="/admin/prizes">إلغاء</a>
+        <button type="submit" class="btn btn-primary">@(isNew ? "إضافة العنصر" : "حفظ التغييرات")</button>
     </div>
 </form>
 @if (!isNew && !Model.IsActive)
 {
-    <form id="archive-form" method="post" asp-antiforgery="true" action="/admin/prizes/@Model.Id/archive" data-confirm="Archive this item? It leaves the admin list and the wheel, but all past spins and awards keep their record."></form>
+    <form id="archive-form" method="post" asp-antiforgery="true" action="/admin/prizes/@Model.Id/archive" data-confirm="أرشفة هذا العنصر؟ سيختفي من قائمة الإدارة ومن العجلة، لكن كل اللفّات والجوائز المكتسبة السابقة تبقى محفوظة في السجل."></form>
 }

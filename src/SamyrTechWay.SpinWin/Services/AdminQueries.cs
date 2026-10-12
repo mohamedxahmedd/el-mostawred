@@ -22,7 +22,7 @@ public sealed class AdminQueries(AppDbContext db, SettingsService settings, Time
         var activity = Enumerable.Range(0, 7).Select(i =>
         {
             var dayStart = since.AddDays(i);
-            var label = CairoTime.Format(dayStart.AddHours(12), "ddd dd");
+            var label = AdminText.Date(dayStart.AddHours(12), "ddd d");
             var inDay = recentForChart.Where(a => CairoTime.StartOfCairoDayUtc(a.CreatedAtUtc) == CairoTime.StartOfCairoDayUtc(dayStart.AddHours(12))).ToList();
             return new DayActivity(label, inDay.Count, inDay.Count(a => a.Kind == SpinResultKind.Won));
         }).ToList();
@@ -44,17 +44,17 @@ public sealed class AdminQueries(AppDbContext db, SettingsService settings, Time
             WheelStatus = odds.Status,
             ConfiguredTotal = odds.ConfiguredTotal,
             RecentAttempts = (await db.SpinAttempts.AsNoTracking().OrderByDescending(a => a.CreatedAtUtc).Take(10)
-                    .Select(a => new { a.Id, a.CreatedAtUtc, a.CustomerId, a.Customer!.FullName, a.Customer.NormalizedPhone, a.ItemNameEn, a.Kind })
+                    .Select(a => new { a.Id, a.CreatedAtUtc, a.CustomerId, a.Customer!.FullName, a.Customer.NormalizedPhone, ItemName = (a.ItemNameAr != null && a.ItemNameAr != "" ? a.ItemNameAr : a.ItemNameEn), a.Kind })
                     .ToListAsync(ct))
-                .Select(a => new RecentAttemptRow(a.Id, a.CreatedAtUtc, a.CustomerId, a.FullName, PhoneNumber.Mask(a.NormalizedPhone), a.ItemNameEn, a.Kind))
+                .Select(a => new RecentAttemptRow(a.Id, a.CreatedAtUtc, a.CustomerId, a.FullName, PhoneNumber.Mask(a.NormalizedPhone), a.ItemName, a.Kind))
                 .ToList(),
             RecentPendingAwards = await db.Awards.AsNoTracking().Where(a => a.Status == AwardStatus.Pending)
                 .OrderByDescending(a => a.CreatedAtUtc).Take(8)
-                .Select(a => new PendingAwardRow(a.Id, a.CreatedAtUtc, a.CustomerId, a.Customer!.FullName, a.PrizeNameEn, a.CelebrationTier))
+                .Select(a => new PendingAwardRow(a.Id, a.CreatedAtUtc, a.CustomerId, a.Customer!.FullName, (a.PrizeNameAr != null && a.PrizeNameAr != "" ? a.PrizeNameAr : a.PrizeNameEn), a.CelebrationTier))
                 .ToListAsync(ct),
             StockAlerts = items.Where(i => i.Kind == WheelItemKind.Prize && i.StockQuantity is not null && i.StockQuantity <= i.LowStockThreshold)
                 .OrderBy(i => i.StockQuantity)
-                .Select(i => new StockAlertRow(i.Id, i.NameEn, i.StockQuantity!.Value, i.LowStockThreshold)).ToList(),
+                .Select(i => new StockAlertRow(i.Id, AdminText.Name(i.NameEn, i.NameAr), i.StockQuantity!.Value, i.LowStockThreshold)).ToList(),
             Activity = activity,
         };
     }
@@ -166,7 +166,7 @@ public sealed class AdminQueries(AppDbContext db, SettingsService settings, Time
             else
                 q = q.Where(a => a.Customer!.FullName.Contains(term)
                                  || (a.Customer.InvoiceReference != null && a.Customer.InvoiceReference.Contains(term))
-                                 || a.ItemNameEn.Contains(term));
+                                 || a.ItemNameEn.Contains(term) || (a.ItemNameAr != null && a.ItemNameAr.Contains(term)));
         }
         q = f.Kind switch
         {
@@ -181,7 +181,7 @@ public sealed class AdminQueries(AppDbContext db, SettingsService settings, Time
         var rows = await q.OrderByDescending(a => a.CreatedAtUtc)
             .Skip((f.Page - 1) * PageSize).Take(PageSize)
             .Select(a => new SpinRow(a.Id, a.CreatedAtUtc, a.CustomerId, a.Customer!.FullName, a.Customer.InvoiceReference,
-                a.ItemNameEn, a.Kind, a.CreditsBefore, a.CreditsAfter, a.RequestId, a.Award != null ? a.Award.Id : null))
+                (a.ItemNameAr != null && a.ItemNameAr != "" ? a.ItemNameAr : a.ItemNameEn), a.Kind, a.CreditsBefore, a.CreditsAfter, a.RequestId, a.Award != null ? a.Award.Id : null))
             .ToListAsync(ct);
         return new SpinListViewModel { Filter = f, Result = new Paged<SpinRow>(rows, f.Page, PageSize, total) };
     }
@@ -209,7 +209,7 @@ public sealed class AdminQueries(AppDbContext db, SettingsService settings, Time
             var term = f.Q.Trim();
             q = PhoneNumber.TryNormalize(term, out var phone)
                 ? q.Where(a => a.Customer!.NormalizedPhone == phone)
-                : q.Where(a => a.Customer!.FullName.Contains(term) || a.PrizeNameEn.Contains(term)
+                : q.Where(a => a.Customer!.FullName.Contains(term) || a.PrizeNameEn.Contains(term) || (a.PrizeNameAr != null && a.PrizeNameAr.Contains(term))
                                || (a.Customer.InvoiceReference != null && a.Customer.InvoiceReference.Contains(term)));
         }
 
@@ -219,13 +219,13 @@ public sealed class AdminQueries(AppDbContext db, SettingsService settings, Time
             .Select(a => new
             {
                 a.Id, a.CreatedAtUtc, a.CustomerId, a.Customer!.FullName, a.Customer.NormalizedPhone, a.Customer.InvoiceReference,
-                a.PrizeNameEn, a.CelebrationTier, a.Status, a.DeliveredAtUtc, a.DeliveredByAdminName, a.AdminNote, a.SpinAttemptId,
+                PrizeName = (a.PrizeNameAr != null && a.PrizeNameAr != "" ? a.PrizeNameAr : a.PrizeNameEn), a.CelebrationTier, a.Status, a.DeliveredAtUtc, a.DeliveredByAdminName, a.AdminNote, a.SpinAttemptId,
             }).ToListAsync(ct);
         return new AwardListViewModel
         {
             Filter = f,
             Result = new Paged<AwardRow>(rows.Select(a => new AwardRow(a.Id, a.CreatedAtUtc, a.CustomerId, a.FullName,
-                PhoneNumber.Mask(a.NormalizedPhone), a.InvoiceReference, a.PrizeNameEn, a.CelebrationTier, a.Status,
+                PhoneNumber.Mask(a.NormalizedPhone), a.InvoiceReference, a.PrizeName, a.CelebrationTier, a.Status,
                 a.DeliveredAtUtc, a.DeliveredByAdminName, a.AdminNote, a.SpinAttemptId)).ToList(), f.Page, PageSize, total),
         };
     }

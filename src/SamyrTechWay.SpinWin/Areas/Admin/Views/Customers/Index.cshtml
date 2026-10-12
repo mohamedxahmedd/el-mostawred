@@ -1,54 +1,54 @@
 @model CustomerListViewModel
 @{
-    ViewData["Title"] = "Customers";
+    ViewData["Title"] = "العملاء";
     ViewData["Section"] = "customers";
     var f = Model.Filter;
     string PageUrl(int p) => $"/admin/customers?Q={Uri.EscapeDataString(f.Q ?? "")}&Status={f.Status}&WithCredits={f.WithCredits.ToString().ToLowerInvariant()}&Page={p}";
 }
 <div class="page-actions">
-    <h2>Buyers</h2>
-    <a class="btn btn-primary" href="/admin/customers/create"><partial name="_Icon" model="@("user-plus")" /> Add customer</a>
+    <h2>المشترون</h2>
+    <a class="btn btn-primary" href="/admin/customers/create"><partial name="_Icon" model="@("user-plus")" /> إضافة عميل</a>
 </div>
 
 <form class="filters card" method="get" action="/admin/customers" role="search">
     <div class="field grow">
-        <label class="label" for="q">Search</label>
-        <input class="input" id="q" name="Q" value="@f.Q" placeholder="Name, phone or invoice" />
+        <label class="label" for="q">بحث</label>
+        <input class="input" id="q" name="Q" value="@f.Q" placeholder="الاسم أو رقم الموبايل أو الفاتورة" />
     </div>
     <div class="field">
-        <label class="label" for="status">Status</label>
+        <label class="label" for="status">الحالة</label>
         <select class="select" id="status" name="Status">
-            <option value="all" selected="@(f.Status is null or "all")">All</option>
-            <option value="active" selected="@(f.Status == "active")">Active</option>
-            <option value="disabled" selected="@(f.Status == "disabled")">Disabled</option>
+            <option value="all" selected="@(f.Status is null or "all")">الكل</option>
+            <option value="active" selected="@(f.Status == "active")">مفعّل</option>
+            <option value="disabled" selected="@(f.Status == "disabled")">موقوف</option>
         </select>
     </div>
-    <label class="check" style="min-height:44px"><input type="checkbox" name="WithCredits" value="true" @(f.WithCredits ? "checked" : "") /><span class="switch" aria-hidden="true"></span> Has credits</label>
-    <button type="submit" class="btn"><partial name="_Icon" model="@("search")" /> Filter</button>
+    <label class="check" style="min-height:44px"><input type="checkbox" name="WithCredits" value="true" @(f.WithCredits ? "checked" : "") /><span class="switch" aria-hidden="true"></span> لديه لفّات</label>
+    <button type="submit" class="btn"><partial name="_Icon" model="@("search")" /> تصفية</button>
 </form>
 
 <section class="card">
     @if (Model.Result.Items.Count == 0)
     {
-        <p class="empty">@(string.IsNullOrWhiteSpace(f.Q) && f.Status is null or "all" && !f.WithCredits ? "No customers yet. Add the first buyer to issue their spin credit and access code." : "No customers match these filters.")</p>
+        <p class="empty">@(string.IsNullOrWhiteSpace(f.Q) && f.Status is null or "all" && !f.WithCredits ? "لا يوجد عملاء بعد. أضف أول مشترٍ لتمنحه رصيد اللفّات وكود الدخول." : "لا يوجد عملاء مطابقون لهذه التصفية.")</p>
     }
     else
     {
         <div class="table-wrap">
             <table class="data stack">
-                <thead><tr><th>Name</th><th>Phone</th><th>Invoice</th><th>Laptop</th><th class="num">Credits</th><th>Status</th><th class="num">Prizes</th><th>Added</th></tr></thead>
+                <thead><tr><th>الاسم</th><th>رقم الموبايل</th><th>الفاتورة</th><th>موديل اللابتوب</th><th class="num">اللفّات</th><th>الحالة</th><th class="num">الجوائز</th><th>تاريخ الإضافة</th></tr></thead>
                 <tbody>
                     @foreach (var c in Model.Result.Items)
                     {
                         <tr>
-                            <td data-label="Name"><a href="/admin/customers/@c.Id">@c.FullName</a></td>
-                            <td data-label="Phone" class="mono">@c.Phone</td>
-                            <td data-label="Invoice">@(c.Invoice ?? "—")</td>
-                            <td data-label="Laptop">@(c.LaptopModel ?? "—")</td>
-                            <td data-label="Credits" class="num strong">@c.Credits</td>
-                            <td data-label="Status"><partial name="_CustomerState" model="c.State" /></td>
-                            <td data-label="Prizes" class="num">@c.Awards</td>
-                            <td data-label="Added" class="mono">@CairoTime.Format(c.CreatedAtUtc, "dd MMM yyyy")</td>
+                            <td data-label="الاسم"><a href="/admin/customers/@c.Id">@c.FullName</a></td>
+                            <td data-label="رقم الموبايل" class="mono"><bdi dir="ltr">@c.Phone</bdi></td>
+                            <td data-label="الفاتورة">@(c.Invoice ?? "—")</td>
+                            <td data-label="موديل اللابتوب">@(c.LaptopModel ?? "—")</td>
+                            <td data-label="اللفّات" class="num strong">@c.Credits</td>
+                            <td data-label="الحالة"><partial name="_CustomerState" model="c.State" /></td>
+                            <td data-label="الجوائز" class="num">@c.Awards</td>
+                            <td data-label="تاريخ الإضافة" class="mono">@AdminText.Date(c.CreatedAtUtc, "d MMM yyyy")</td>
                         </tr>
                     }
                 </tbody>

@@ -13,7 +13,7 @@ namespace SamyrTechWay.SpinWin.Areas.Admin.Controllers;
 
 public sealed class AccountController(UserManager<AdminUser> users, TimeProvider clock, ILogger<AccountController> logger) : AdminControllerBase
 {
-    private const string GenericFailure = "Invalid email or password, or the account is temporarily locked.";
+    private const string GenericFailure = "البريد الإلكتروني أو كلمة المرور غير صحيحة، أو الحساب موقوف مؤقتًا. حاول مرة أخرى بعد قليل.";
 
     // Hash checked for unknown e-mails so they cost the same PBKDF2 work as real ones (no account enumeration by timing).
     private static string? _dummyHash;
@@ -22,7 +22,7 @@ public sealed class AccountController(UserManager<AdminUser> users, TimeProvider
     [HttpGet("/admin/login")]
     public IActionResult Login(string? returnUrl, string? e)
     {
-        if (e == "rate") ModelState.AddModelError(string.Empty, "Too many sign-in attempts. Wait a minute and try again.");
+        if (e == "rate") ModelState.AddModelError(string.Empty, "محاولات تسجيل دخول كثيرة. انتظر دقيقة وحاول مرة أخرى.");
         return View(new AdminLoginForm { ReturnUrl = returnUrl });
     }
 
@@ -106,7 +106,7 @@ public sealed class AccountController(UserManager<AdminUser> users, TimeProvider
 
         // Security stamp changed: re-issue this session, other sessions are invalidated on their next request.
         await HttpContext.SignInAsync(AuthSchemes.Admin, AuthSetup.AdminPrincipal(user));
-        Toast("Password changed. Other sessions have been signed out.");
+        Toast("تم تغيير كلمة المرور. تم تسجيل الخروج من الجلسات الأخرى.");
         return Redirect("/admin");
     }
 }

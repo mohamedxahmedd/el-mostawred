@@ -21,15 +21,15 @@ public sealed class CustomerAdminService(
 {
     public const int MaxInitialCredits = 20;
     public const int MaxCreditAdjustment = 20;
-    public const string CustomerNotFoundMessage = "Customer not found.";
-    public const string DuplicatePhoneMessage = "A customer with this phone number already exists.";
+    public const string CustomerNotFoundMessage = "العميل غير موجود.";
+    public const string DuplicatePhoneMessage = "يوجد عميل آخر مسجّل بنفس رقم الموبايل.";
 
     public async Task<ServiceResult<CreatedCustomer>> CreateAsync(CustomerInput input, int initialCredits, AdminActor actor, CancellationToken ct = default)
     {
         if (!PhoneNumber.TryNormalize(input.Phone, out var phone))
-            return ServiceResult<CreatedCustomer>.Fail("Enter a valid Egyptian mobile number (010, 011, 012 or 015).", nameof(input.Phone));
+            return ServiceResult<CreatedCustomer>.Fail("اكتب رقم موبايل مصري صحيح يبدأ بـ 010 أو 011 أو 012 أو 015.", nameof(input.Phone));
         if (initialCredits is < 0 or > MaxInitialCredits)
-            return ServiceResult<CreatedCustomer>.Fail($"Initial credits must be between 0 and {MaxInitialCredits}.", "InitialCredits");
+            return ServiceResult<CreatedCustomer>.Fail($"عدد اللفّات المبدئي يجب أن يكون بين 0 و{MaxInitialCredits}.", "InitialCredits");
         if (await db.Customers.AnyAsync(c => c.NormalizedPhone == phone, ct))
             return ServiceResult<CreatedCustomer>.Fail(DuplicatePhoneMessage, nameof(input.Phone));
 
@@ -66,7 +66,7 @@ public sealed class CustomerAdminService(
                         Reason = CreditReason.Initial,
                         AdminUserId = actor.Id,
                         AdminName = actor.Name,
-                        Note = "Initial purchase credit",
+                        Note = "رصيد شراء اللابتوب",
                         CreatedAtUtc = now,
                     });
                 }
@@ -87,10 +87,10 @@ public sealed class CustomerAdminService(
     public async Task<ServiceResult> UpdateAsync(int id, CustomerInput input, byte[] rowVersion, AdminActor actor, CancellationToken ct = default)
     {
         if (!PhoneNumber.TryNormalize(input.Phone, out var phone))
-            return ServiceResult.Fail("Enter a valid Egyptian mobile number (010, 011, 012 or 015).", nameof(input.Phone));
+            return ServiceResult.Fail("اكتب رقم موبايل مصري صحيح يبدأ بـ 010 أو 011 أو 012 أو 015.", nameof(input.Phone));
 
         var customer = await db.Customers.FirstOrDefaultAsync(c => c.Id == id, ct);
-        if (customer is null) return ServiceResult.Fail("Customer not found.");
+        if (customer is null) return ServiceResult.Fail(CustomerNotFoundMessage);
         if (customer.NormalizedPhone != phone && await db.Customers.AnyAsync(c => c.NormalizedPhone == phone && c.Id != id, ct))
             return ServiceResult.Fail(DuplicatePhoneMessage, nameof(input.Phone));
 
@@ -118,7 +118,7 @@ public sealed class CustomerAdminService(
         }
         catch (DbUpdateConcurrencyException)
         {
-            return ServiceResult.Fail("This customer was changed by someone else (or by a spin). Reload the page and try again.");
+            return ServiceResult.Fail("تم تعديل هذا السجل من مستخدم آخر. حدّث الصفحة وحاول مرة أخرى.");
         }
         catch (DbUpdateException ex) when (DbErrors.IsUniqueViolation(ex))
         {
@@ -131,9 +131,9 @@ public sealed class CustomerAdminService(
     {
         reason = Clean(reason);
         if (delta == 0 || Math.Abs(delta) > MaxCreditAdjustment)
-            return ServiceResult<int>.Fail($"Choose between 1 and {MaxCreditAdjustment} credits.", "Amount");
+            return ServiceResult<int>.Fail($"اختر عددًا من 1 إلى {MaxCreditAdjustment} لفّة.", "Amount");
         if (reason is null || reason.Length < 3)
-            return ServiceResult<int>.Fail("A reason is required for every credit change.", "Reason");
+            return ServiceResult<int>.Fail("اكتب سببًا لكل تغيير في رصيد اللفّات.", "Reason");
 
         return await db.InTransactionAsync(async token =>
         {
@@ -143,7 +143,7 @@ public sealed class CustomerAdminService(
             if (updated == 0)
             {
                 var exists = await db.Customers.AnyAsync(c => c.Id == id, token);
-                return ServiceResult<int>.Fail(exists ? "Credits cannot go below zero." : "Customer not found.", "Amount");
+                return ServiceResult<int>.Fail(exists ? "لا يمكن أن يقل رصيد اللفّات عن صفر." : CustomerNotFoundMessage, "Amount");
             }
 
             var balance = await db.Customers.Where(c => c.Id == id).Select(c => c.SpinCredits).SingleAsync(token);
@@ -195,7 +195,7 @@ public sealed class CustomerAdminService(
                     Reason = CreditReason.AdminRevoke,
                     AdminUserId = actor.Id,
                     AdminName = actor.Name,
-                    Note = "All spins removed by admin",
+                    Note = "تصفير كل اللفّات بواسطة المدير",
                     CreatedAtUtc = clock.GetUtcNow().UtcDateTime,
                 });
                 audit.Record(actor, "credits.clear", "Customer", id.ToString(), new { removed = current.Value });
@@ -204,13 +204,13 @@ public sealed class CustomerAdminService(
             }, ct);
             if (result is not null) return result;
         }
-        return ServiceResult<int>.Fail("The customer is spinning right now. Wait a moment and try again.");
+        return ServiceResult<int>.Fail("العميل يلف الآن. انتظر لحظة وحاول مرة أخرى.");
     }
 
     /// <summary>Issues a new access code, invalidating the old one and any signed-in sessions. Returns the plaintext once.</summary>
     public async Task<ServiceResult<string>> ResetAccessCodeAsync(int id, AdminActor actor, CancellationToken ct = default)
     {
-        if (!await db.Customers.AnyAsync(c => c.Id == id, ct)) return ServiceResult<string>.Fail("Customer not found.");
+        if (!await db.Customers.AnyAsync(c => c.Id == id, ct)) return ServiceResult<string>.Fail(CustomerNotFoundMessage);
 
         var code = AccessCodes.Generate();
         var hash = codes.Hash(new Customer(), code);
@@ -247,7 +247,7 @@ public sealed class CustomerAdminService(
                     // Ends existing sessions for good, so re-activating later doesn't revive them.
                     .SetProperty(c => c.AccessCodeVersion, c => c.AccessCodeVersion + 1)
                     .SetProperty(c => c.UpdatedAtUtc, now), token);
-            if (updated == 0) return ServiceResult.Fail("Customer not found.");
+            if (updated == 0) return ServiceResult.Fail(CustomerNotFoundMessage);
             audit.Record(actor, active ? "customer.activate" : "customer.deactivate", "Customer", id.ToString());
             await db.SaveChangesAsync(token);
             return ServiceResult.Success;

@@ -17,9 +17,9 @@ public sealed class AwardsController(AdminQueries queries, AwardService awards) 
         var result = await awards.MarkDeliveredAsync(id, note, Actor, ct);
         Toast(result switch
         {
-            DeliveryResult.Delivered => "Marked as delivered.",
-            DeliveryResult.AlreadyDelivered => "This award was already marked as delivered — nothing changed.",
-            _ => "Award not found.",
+            DeliveryResult.Delivered => "تم تأكيد تسليم الجائزة.",
+            DeliveryResult.AlreadyDelivered => "هذه الجائزة مسجّلة كمُسلَّمة من قبل — لم يتغيّر شيء.",
+            _ => "الجائزة المكتسبة غير موجودة.",
         }, result == DeliveryResult.Delivered ? "success" : "warning");
         return LocalRedirect(Url.IsLocalUrl(returnUrl) && returnUrl!.StartsWith("/admin") ? returnUrl : "/admin/awards");
     }

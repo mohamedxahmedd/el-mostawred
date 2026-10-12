@@ -27,7 +27,7 @@ public sealed class SettingsController(AdminQueries queries, SettingsAdminServic
     [HttpPost("")]
     public async Task<IActionResult> Index(SettingsForm form, CancellationToken ct)
     {
-        if (!Enum.IsDefined(form.AnimationIntensity)) ModelState.AddModelError(nameof(form.AnimationIntensity), "Choose an intensity.");
+        if (!Enum.IsDefined(form.AnimationIntensity)) ModelState.AddModelError(nameof(form.AnimationIntensity), "اختر قوة الحركة.");
         if (!ModelState.IsValid) return View(form);
 
         var result = await settings.UpdateAsync(s =>
@@ -54,7 +54,7 @@ public sealed class SettingsController(AdminQueries queries, SettingsAdminServic
             AddError(result);
             return View(form);
         }
-        Toast(form.CampaignEnabled ? "Settings saved." : "Settings saved. The campaign is PAUSED — customers cannot spin.", form.CampaignEnabled ? "success" : "warning");
+        Toast(form.CampaignEnabled ? "تم حفظ الإعدادات." : "تم حفظ الإعدادات. الحملة متوقفة مؤقتًا — لا يمكن للعملاء اللفّ الآن.", form.CampaignEnabled ? "success" : "warning");
         return Redirect("/admin/settings");
     }
 }

@@ -2,12 +2,12 @@
 @switch (Model)
 {
     case CustomerState.Eligible:
-        <span class="badge badge-ok">Eligible</span>
+        <span class="badge badge-ok">@AdminText.State(Model)</span>
         break;
     case CustomerState.Finished:
-        <span class="badge badge-muted">Finished</span>
+        <span class="badge badge-muted">@AdminText.State(Model)</span>
         break;
     default:
-        <span class="badge badge-bad">Disabled</span>
+        <span class="badge badge-bad">@AdminText.State(Model)</span>
         break;
 }

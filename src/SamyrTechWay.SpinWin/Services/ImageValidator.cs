@@ -15,20 +15,20 @@ public static class ImageValidator
 
     public static async Task<(byte[]? Data, string? ContentType, string? Error)> ReadAsync(IFormFile file, CancellationToken ct)
     {
-        if (file.Length == 0) return (null, null, "The selected image is empty.");
-        if (file.Length > MaxBytes) return (null, null, "Images must be 2 MB or smaller.");
+        if (file.Length == 0) return (null, null, "الصورة المختارة فارغة.");
+        if (file.Length > MaxBytes) return (null, null, "حجم الصورة يجب ألا يزيد عن 2 ميجابايت.");
 
         using var ms = new MemoryStream((int)file.Length);
         await using (var stream = file.OpenReadStream())
         {
             await stream.CopyToAsync(ms, ct);
         }
-        if (ms.Length > MaxBytes) return (null, null, "Images must be 2 MB or smaller.");
+        if (ms.Length > MaxBytes) return (null, null, "حجم الصورة يجب ألا يزيد عن 2 ميجابايت.");
 
         var bytes = ms.ToArray();
         var type = DetectContentType(bytes);
         return type is null
-            ? (null, null, "Only JPEG, PNG or WebP images are accepted.")
+            ? (null, null, "الصور المقبولة فقط بصيغة JPEG أو PNG أو WebP.")
             : (bytes, type, null);
     }
 }

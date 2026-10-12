@@ -194,7 +194,7 @@ public sealed class SpinService(
                         BalanceAfter = creditsBefore,
                         Reason = CreditReason.TryAgainRefund,
                         SpinAttemptId = attempt.Id,
-                        Note = "Automatic Try Again refund",
+                        Note = "استرداد تلقائي (حاول مرة أخرى)",
                         CreatedAtUtc = now,
                     });
                 }

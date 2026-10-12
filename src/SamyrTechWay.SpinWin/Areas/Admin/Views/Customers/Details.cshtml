@@ -7,98 +7,98 @@
 }
 <div class="page-actions">
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        <a class="btn btn-ghost btn-sm" href="/admin/customers"><partial name="_Icon" model="@("arrow-left")" /> Customers</a>
+        <a class="btn btn-ghost btn-sm" href="/admin/customers"><partial name="_Icon" model="@("arrow-right")" /> العملاء</a>
         <partial name="_CustomerState" model="Model.State" />
-        @if (lockedOut) { <span class="badge badge-warn">Sign-in locked until @CairoTime.Format(c.LockoutEndUtc!.Value, "HH:mm")</span> }
+        @if (lockedOut) { <span class="badge badge-warn">تسجيل الدخول مقفول مؤقتًا حتى <bdi dir="ltr">@AdminText.Date(c.LockoutEndUtc!.Value, "HH:mm")</bdi></span> }
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <a class="btn btn-sm" href="/admin/customers/@c.Id/edit"><partial name="_Icon" model="@("pencil")" /> Edit</a>
-        <form method="post" asp-antiforgery="true" action="/admin/customers/@c.Id/reset-code" data-confirm="Generate a new access code? The current code stops working immediately and the customer is signed out.">
-            <button type="submit" class="btn btn-sm"><partial name="_Icon" model="@("key-round")" /> Reset access code</button>
+        <a class="btn btn-sm" href="/admin/customers/@c.Id/edit"><partial name="_Icon" model="@("pencil")" /> تعديل</a>
+        <form method="post" asp-antiforgery="true" action="/admin/customers/@c.Id/reset-code" data-confirm="إصدار كود دخول جديد؟ الكود الحالي سيتوقف عن العمل فورًا وسيتم تسجيل خروج العميل.">
+            <button type="submit" class="btn btn-sm"><partial name="_Icon" model="@("key-round")" /> إصدار كود دخول جديد</button>
         </form>
-        <form method="post" asp-antiforgery="true" action="/admin/customers/@c.Id/toggle-active" data-confirm="@(c.IsActive ? "Disable this customer? They will be signed out and cannot spin until re-activated. History is kept." : "Re-activate this customer?")">
+        <form method="post" asp-antiforgery="true" action="/admin/customers/@c.Id/toggle-active" data-confirm="@(c.IsActive ? "إيقاف هذا العميل؟ سيتم تسجيل خروجه ولن يستطيع اللف حتى تعيد تفعيله. سجلّه محفوظ." : "إعادة تفعيل هذا العميل؟")">
             <input type="hidden" name="active" value="@(!c.IsActive)" />
-            <button type="submit" class="btn btn-sm @(c.IsActive ? "btn-danger" : "")"><partial name="_Icon" model="@("power")" /> @(c.IsActive ? "Disable" : "Re-activate")</button>
+            <button type="submit" class="btn btn-sm @(c.IsActive ? "btn-danger" : "")"><partial name="_Icon" model="@("power")" /> @(c.IsActive ? "إيقاف" : "إعادة تفعيل")</button>
         </form>
     </div>
 </div>
 
 <div class="grid-2">
     <section class="card">
-        <div class="card-head"><h2>Profile</h2></div>
+        <div class="card-head"><h2>بيانات العميل</h2></div>
         <dl class="dl">
-            <dt>Mobile</dt><dd class="mono">@PhoneNumber.ToLocalDisplay(c.NormalizedPhone) <span class="dim">(@c.NormalizedPhone)</span></dd>
-            <dt>Invoice</dt><dd>@(c.InvoiceReference ?? "—")</dd>
-            <dt>Laptop</dt><dd>@(c.LaptopModel ?? "—")</dd>
-            <dt>Notes</dt><dd>@(c.Notes ?? "—")</dd>
-            <dt>Added</dt><dd>@CairoTime.Format(c.CreatedAtUtc)</dd>
-            <dt>Last sign-in</dt><dd>@(c.LastLoginAtUtc is { } l ? CairoTime.Format(l) : "Never")</dd>
-            <dt>Code version</dt><dd>@c.AccessCodeVersion <span class="dim">(increments on each reset)</span></dd>
+            <dt>رقم الموبايل</dt><dd class="mono"><bdi dir="ltr">@PhoneNumber.ToLocalDisplay(c.NormalizedPhone)</bdi> <span class="dim">(<bdi dir="ltr">@c.NormalizedPhone</bdi>)</span></dd>
+            <dt>الفاتورة</dt><dd>@(c.InvoiceReference ?? "—")</dd>
+            <dt>موديل اللابتوب</dt><dd>@(c.LaptopModel ?? "—")</dd>
+            <dt>ملاحظات</dt><dd>@(c.Notes ?? "—")</dd>
+            <dt>تاريخ الإضافة</dt><dd>@AdminText.Date(c.CreatedAtUtc)</dd>
+            <dt>آخر تسجيل دخول</dt><dd>@(c.LastLoginAtUtc is { } l ? AdminText.Date(l) : "لم يسجّل الدخول بعد")</dd>
+            <dt>إصدار الكود</dt><dd>@c.AccessCodeVersion <span class="dim">(يزيد مع كل إصدار كود جديد)</span></dd>
         </dl>
     </section>
 
     <section class="card" aria-labelledby="credits-title">
-        <div class="card-head"><h2 id="credits-title">Spin credits</h2><span class="kpi-value">@c.SpinCredits</span></div>
+        <div class="card-head"><h2 id="credits-title">رصيد اللفّات</h2><span class="kpi-value">@c.SpinCredits</span></div>
         @if (!Model.LedgerReconciles)
         {
-            <p class="alert alert-error" style="margin-bottom:12px"><partial name="_Icon" model="@("triangle-alert")" /><span>Ledger does not reconcile with the stored balance. Investigate before granting credits.</span></p>
+            <p class="alert alert-error" style="margin-bottom:12px"><partial name="_Icon" model="@("triangle-alert")" /><span>سجل الرصيد لا يطابق الرصيد المحفوظ. راجع الأمر قبل إضافة أي لفّات.</span></p>
         }
         <form method="post" asp-antiforgery="true" action="/admin/customers/@c.Id/credits" novalidate data-busy-form>
             <div asp-validation-summary="All" class="alert alert-error" role="alert" style="margin-bottom:12px"></div>
             <div class="form-grid">
                 <div class="field">
-                    <label class="label" for="cf-dir">Action</label>
+                    <label class="label" for="cf-dir">الإجراء</label>
                     <select class="select" id="cf-dir" name="Direction">
-                        <option value="grant" selected="@(Model.CreditForm.Direction != "revoke")">Grant credits</option>
-                        <option value="revoke" selected="@(Model.CreditForm.Direction == "revoke")">Remove credits</option>
+                        <option value="grant" selected="@(Model.CreditForm.Direction != "revoke")">إضافة لفّات</option>
+                        <option value="revoke" selected="@(Model.CreditForm.Direction == "revoke")">خصم لفّات</option>
                     </select>
                 </div>
                 <div class="field">
-                    <label class="label" for="cf-amount">Amount</label>
+                    <label class="label" for="cf-amount">العدد</label>
                     <input class="input" id="cf-amount" name="Amount" type="number" min="1" max="@CustomerAdminService.MaxCreditAdjustment" value="@Model.CreditForm.Amount" inputmode="numeric" />
                 </div>
                 <div class="field span-2">
-                    <label class="label" for="cf-reason">Reason (required, audited)</label>
-                    <input class="input" id="cf-reason" name="Reason" value="@Model.CreditForm.Reason" maxlength="300" placeholder="e.g. Second laptop purchase, invoice INV-2041" />
+                    <label class="label" for="cf-reason">السبب (إلزامي ويُسجَّل في سجل العمليات)</label>
+                    <input class="input" id="cf-reason" name="Reason" value="@Model.CreditForm.Reason" maxlength="300" placeholder="مثال: شراء لابتوب ثانٍ، فاتورة INV-2041" />
                 </div>
             </div>
-            <div class="form-actions" style="margin-top:14px"><button type="submit" class="btn btn-primary"><partial name="_Icon" model="@("coins")" /> Apply</button></div>
+            <div class="form-actions" style="margin-top:14px"><button type="submit" class="btn btn-primary"><partial name="_Icon" model="@("coins")" /> تطبيق</button></div>
         </form>
         @if (c.SpinCredits > 0)
         {
             <form method="post" asp-antiforgery="true" action="/admin/customers/@c.Id/credits/clear" style="margin-top:12px"
-                  data-confirm="Set @c.FullName's spins to 0? They won't be able to spin until you grant credits again. Past prizes are kept.">
-                <button type="submit" class="btn btn-danger btn-sm"><partial name="_Icon" model="@("minus")" /> Set spins to 0</button>
+                  data-confirm="تصفير لفّات @c.FullName؟ لن يستطيع اللف حتى تضيف له لفّات من جديد. الجوائز السابقة محفوظة.">
+                <button type="submit" class="btn btn-danger btn-sm"><partial name="_Icon" model="@("minus")" /> تصفير اللفّات</button>
             </form>
         }
     </section>
 </div>
 
 <section class="card">
-    <div class="card-head"><h2>Awards</h2></div>
+    <div class="card-head"><h2>الجوائز المكتسبة</h2></div>
     @if (Model.Awards.Count == 0)
     {
-        <p class="empty">No real prizes won yet.</p>
+        <p class="empty">لم يفز بأي جائزة حتى الآن.</p>
     }
     else
     {
         <div class="table-wrap">
             <table class="data stack">
-                <thead><tr><th>Prize</th><th>Won</th><th>Status</th><th>Delivered</th><th></th></tr></thead>
+                <thead><tr><th>الجائزة</th><th>وقت الفوز</th><th>الحالة</th><th>التسليم</th><th></th></tr></thead>
                 <tbody>
                     @foreach (var a in Model.Awards)
                     {
                         <tr>
-                            <td data-label="Prize"><span class="strong">@a.PrizeNameEn</span> <partial name="_Tier" model="a.CelebrationTier" /></td>
-                            <td data-label="Won" class="mono"><a href="/admin/spins/@a.SpinAttemptId">@CairoTime.Format(a.CreatedAtUtc)</a></td>
-                            <td data-label="Status"><span class="badge @(a.Status == AwardStatus.Delivered ? "badge-ok" : "badge-warn")">@a.Status</span></td>
-                            <td data-label="Delivered">@(a.DeliveredAtUtc is { } d ? $"{CairoTime.Format(d)} by {a.DeliveredByAdminName}" : "—")</td>
+                            <td data-label="الجائزة"><span class="strong">@AdminText.Name(a.PrizeNameEn, a.PrizeNameAr)</span> <partial name="_Tier" model="a.CelebrationTier" /></td>
+                            <td data-label="وقت الفوز" class="mono"><a href="/admin/spins/@a.SpinAttemptId">@AdminText.Date(a.CreatedAtUtc)</a></td>
+                            <td data-label="الحالة"><span class="badge @(a.Status == AwardStatus.Delivered ? "badge-ok" : "badge-warn")">@AdminText.Status(a.Status)</span></td>
+                            <td data-label="التسليم">@(a.DeliveredAtUtc is { } d ? $"{AdminText.Date(d)} بواسطة {a.DeliveredByAdminName}" : "—")</td>
                             <td data-label="">
                                 @if (a.Status == AwardStatus.Pending)
                                 {
-                                    <form method="post" asp-antiforgery="true" action="/admin/awards/@a.Id/deliver" data-confirm="Mark “@a.PrizeNameEn” as handed to @c.FullName?">
+                                    <form method="post" asp-antiforgery="true" action="/admin/awards/@a.Id/deliver" data-confirm="تأكيد تسليم «@AdminText.Name(a.PrizeNameEn, a.PrizeNameAr)» إلى @c.FullName؟">
                                         <input type="hidden" name="returnUrl" value="/admin/customers/@c.Id" />
-                                        <button type="submit" class="btn btn-xs btn-gold"><partial name="_Icon" model="@("check")" /> Mark delivered</button>
+                                        <button type="submit" class="btn btn-xs btn-gold"><partial name="_Icon" model="@("check")" /> تأكيد التسليم</button>
                                     </form>
                                 }
                             </td>
@@ -112,24 +112,24 @@
 
 <div class="grid-2-even">
     <section class="card">
-        <div class="card-head"><h2>Spin history</h2><span class="hint">Immutable</span></div>
+        <div class="card-head"><h2>سجل اللفّات</h2><span class="hint">لا يمكن تعديله</span></div>
         @if (Model.Attempts.Count == 0)
         {
-            <p class="empty">No spins yet.</p>
+            <p class="empty">لا توجد لفّات بعد.</p>
         }
         else
         {
             <div class="table-wrap">
                 <table class="data stack">
-                    <thead><tr><th>Time</th><th>Item</th><th>Result</th><th class="num">Credits</th></tr></thead>
+                    <thead><tr><th>الوقت</th><th>الشريحة</th><th>النتيجة</th><th class="num">اللفّات</th></tr></thead>
                     <tbody>
                         @foreach (var a in Model.Attempts)
                         {
                             <tr>
-                                <td data-label="Time" class="mono"><a href="/admin/spins/@a.Id">@CairoTime.Format(a.CreatedAtUtc)</a></td>
-                                <td data-label="Item">@a.ItemNameEn</td>
-                                <td data-label="Result"><span class="badge @(a.Kind == SpinResultKind.Won ? "badge-flame" : "badge-muted")">@(a.Kind == SpinResultKind.Won ? "Won" : "Try Again")</span></td>
-                                <td data-label="Credits" class="num mono">@a.CreditsBefore → @a.CreditsAfter</td>
+                                <td data-label="الوقت" class="mono"><a href="/admin/spins/@a.Id">@AdminText.Date(a.CreatedAtUtc)</a></td>
+                                <td data-label="الشريحة">@AdminText.Name(a.ItemNameEn, a.ItemNameAr)</td>
+                                <td data-label="النتيجة"><span class="badge @(a.Kind == SpinResultKind.Won ? "badge-flame" : "badge-muted")">@AdminText.Result(a.Kind)</span></td>
+                                <td data-label="اللفّات" class="num mono"><bdi dir="ltr">@a.CreditsBefore → @a.CreditsAfter</bdi></td>
                             </tr>
                         }
                     </tbody>
@@ -138,18 +138,18 @@
         }
     </section>
     <section class="card">
-        <div class="card-head"><h2>Credit ledger</h2><span class="hint">Every change, newest first</span></div>
+        <div class="card-head"><h2>سجل الرصيد</h2><span class="hint">كل تغيير، الأحدث أولًا</span></div>
         <div class="table-wrap">
             <table class="data stack">
-                <thead><tr><th>Time</th><th>Change</th><th>Reason</th><th class="num">Balance</th></tr></thead>
+                <thead><tr><th>الوقت</th><th>التغيير</th><th>السبب</th><th class="num">الرصيد</th></tr></thead>
                 <tbody>
                     @foreach (var entry in Model.Ledger)
                     {
                         <tr>
-                            <td data-label="Time" class="mono">@CairoTime.Format(entry.CreatedAtUtc)</td>
-                            <td data-label="Change" class="strong" style="color:@(entry.Delta > 0 ? "#8ff0c2" : "#ffb0a8")">@(entry.Delta > 0 ? "+" : "")@entry.Delta</td>
-                            <td data-label="Reason">@entry.Reason@(entry.Note is null ? "" : $" — {entry.Note}")@(entry.AdminName is null ? "" : $" ({entry.AdminName})")</td>
-                            <td data-label="Balance" class="num">@entry.BalanceAfter</td>
+                            <td data-label="الوقت" class="mono">@AdminText.Date(entry.CreatedAtUtc)</td>
+                            <td data-label="التغيير" class="strong" style="color:@(entry.Delta > 0 ? "#8ff0c2" : "#ffb0a8")"><bdi dir="ltr">@(entry.Delta > 0 ? "+" : "")@entry.Delta</bdi></td>
+                            <td data-label="السبب">@AdminText.Reason(entry.Reason)@(entry.Note is null ? "" : $" — {entry.Note}")@(entry.AdminName is null ? "" : $" ({entry.AdminName})")</td>
+                            <td data-label="الرصيد" class="num">@entry.BalanceAfter</td>
                         </tr>
                     }
                 </tbody>

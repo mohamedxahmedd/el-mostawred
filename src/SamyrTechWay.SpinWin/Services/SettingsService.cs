@@ -52,7 +52,7 @@ public sealed class SettingsAdminService(AppDbContext db, SettingsService settin
         var before = new { entity.CampaignEnabled, entity.DefaultLanguage, entity.SoundEnabledByDefault, entity.SpinDurationMinMs, entity.SpinDurationMaxMs, intensity = entity.AnimationIntensity.ToString() };
         apply(entity);
         if (entity.SpinDurationMinMs > entity.SpinDurationMaxMs)
-            return ServiceResult.Fail("The shortest spin must not be longer than the longest spin.", "SpinDurationMinMs");
+            return ServiceResult.Fail("أقصر مدة للّفّة لا يمكن أن تكون أطول من أطول مدة للّفّة.", "SpinDurationMinMs");
         entity.UpdatedAtUtc = clock.GetUtcNow().UtcDateTime;
         if (isNew) db.SiteSettings.Add(entity);
 
@@ -67,7 +67,7 @@ public sealed class SettingsAdminService(AppDbContext db, SettingsService settin
         }
         catch (DbUpdateConcurrencyException)
         {
-            return ServiceResult.Fail("Settings were changed by another admin. Reload the page and try again.");
+            return ServiceResult.Fail("تم تعديل هذا السجل من مستخدم آخر. حدّث الصفحة وحاول مرة أخرى.");
         }
         settings.Invalidate();
         return ServiceResult.Success;

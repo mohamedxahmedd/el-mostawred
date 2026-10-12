@@ -26,7 +26,7 @@ if (form) {
     sumEl.textContent = (bp / 100).toFixed(2) + '%';
     bar.style.width = Math.min(100, bp / 100) + '%';
     box.dataset.valid = String(ok);
-    msg.textContent = ok ? 'Ready to save' : bad ? 'Fix highlighted weights (0–100, two decimals; active items above 0)' : bp < 10000 ? `${((10000 - bp) / 100).toFixed(2)}% left to allocate` : `${((bp - 10000) / 100).toFixed(2)}% over`;
+    msg.textContent = ok ? 'جاهز للحفظ' : bad ? 'صحّح النسب المميّزة (من 0 إلى 100، برقمين عشريين بحد أقصى، والعناصر المفعّلة أكبر من 0)' : bp < 10000 ? `متبقٍ ${((10000 - bp) / 100).toFixed(2)}% للتوزيع` : `زيادة ${((bp - 10000) / 100).toFixed(2)}% عن المطلوب`;
     if (save) save.disabled = !ok;
   };
   form.addEventListener('input', update);

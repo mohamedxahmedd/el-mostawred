@@ -1,14 +1,14 @@
 @model CustomerForm
 @{
-    ViewData["Title"] = "Add customer";
+    ViewData["Title"] = "إضافة عميل";
     ViewData["Section"] = "customers";
     ViewData["IsCreate"] = true;
 }
 <form class="card" method="post" asp-antiforgery="true" action="/admin/customers/create" novalidate data-busy-form>
-    <p class="muted" style="margin-bottom:18px">After saving, a private access code is generated and shown <strong>once</strong>. Give it to the customer together with the site address.</p>
+    <p class="muted" style="margin-bottom:18px">بعد الحفظ يتم إنشاء كود دخول خاص يظهر <strong>مرة واحدة فقط</strong>. سلّمه للعميل مع عنوان الموقع.</p>
     <partial name="_CustomerFields" model="Model" view-data="ViewData" />
     <div class="form-actions" style="margin-top:18px">
-        <a class="btn btn-ghost" href="/admin/customers">Cancel</a>
-        <button type="submit" class="btn btn-primary"><partial name="_Icon" model="@("key-round")" /> Create &amp; generate code</button>
+        <a class="btn btn-ghost" href="/admin/customers">إلغاء</a>
+        <button type="submit" class="btn btn-primary"><partial name="_Icon" model="@("key-round")" /> إضافة وإنشاء الكود</button>
     </div>
 </form>

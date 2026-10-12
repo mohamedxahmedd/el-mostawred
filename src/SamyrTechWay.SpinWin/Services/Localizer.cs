@@ -4,7 +4,7 @@ namespace SamyrTechWay.SpinWin.Services;
 
 /// <summary>
 /// Lightweight two-language text table for the customer site (Arabic RTL default, English LTR).
-/// Admin UI is English-only. Keys missing from the table render as the key itself so gaps are visible.
+/// The admin UI is Arabic-only and uses <see cref="AdminText"/>. Keys missing from the table render as the key itself so gaps are visible.
 /// </summary>
 public sealed class Localizer
 {

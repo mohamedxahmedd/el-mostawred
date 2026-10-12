@@ -11,6 +11,6 @@
         <div class="error-code text-gold">@Model.StatusCode</div>
         <h1>@Model.Title</h1>
         <p class="muted">@Model.Message</p>
-        <a class="btn btn-primary" href="@(Model.IsAdmin ? "/admin" : "/")">@(Model.IsAdmin ? (Model.AdminSignedIn ? "Back to dashboard" : "Admin sign in") : T["error.home"])</a>
+        <a class="btn btn-primary" href="@(Model.IsAdmin ? "/admin" : "/")">@(Model.IsAdmin ? (Model.AdminSignedIn ? "العودة إلى لوحة التحكم" : "تسجيل دخول المدير") : T["error.home"])</a>
     </div>
 </div>

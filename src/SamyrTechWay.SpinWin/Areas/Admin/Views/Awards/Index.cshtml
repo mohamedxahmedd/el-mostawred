@@ -1,54 +1,54 @@
 @model AwardListViewModel
 @{
-    ViewData["Title"] = "Awards";
+    ViewData["Title"] = "الجوائز المكتسبة";
     ViewData["Section"] = "awards";
     var f = Model.Filter;
     string PageUrl(int p) => $"/admin/awards?Status={f.Status}&Q={Uri.EscapeDataString(f.Q ?? "")}&Page={p}";
     var here = Context.Request.Path + Context.Request.QueryString;
 }
 <form class="filters card" method="get" action="/admin/awards" role="search">
-    <div class="field grow"><label class="label" for="q">Search</label><input class="input" id="q" name="Q" value="@f.Q" placeholder="Customer, phone, invoice or prize" /></div>
+    <div class="field grow"><label class="label" for="q">بحث</label><input class="input" id="q" name="Q" value="@f.Q" placeholder="العميل أو رقم الموبايل أو الفاتورة أو الجائزة" /></div>
     <div class="field">
-        <label class="label" for="st">Status</label>
+        <label class="label" for="st">الحالة</label>
         <select class="select" id="st" name="Status">
-            <option value="pending" selected="@(f.Status == "pending")">Pending delivery</option>
-            <option value="delivered" selected="@(f.Status == "delivered")">Delivered</option>
-            <option value="all" selected="@(f.Status == "all")">All</option>
+            <option value="pending" selected="@(f.Status == "pending")">@AdminText.Status(AwardStatus.Pending)</option>
+            <option value="delivered" selected="@(f.Status == "delivered")">@AdminText.Status(AwardStatus.Delivered)</option>
+            <option value="all" selected="@(f.Status == "all")">الكل</option>
         </select>
     </div>
-    <button type="submit" class="btn"><partial name="_Icon" model="@("filter")" /> Apply</button>
+    <button type="submit" class="btn"><partial name="_Icon" model="@("filter")" /> تصفية</button>
 </form>
 <section class="card">
     @if (Model.Result.Items.Count == 0)
     {
-        <p class="empty">@(f.Status == "pending" ? "No awards waiting for delivery." : "No awards match these filters.")</p>
+        <p class="empty">@(f.Status == "pending" ? "لا توجد جوائز في انتظار التسليم." : "لا توجد جوائز مكتسبة تطابق هذه التصفية.")</p>
     }
     else
     {
         <div class="table-wrap">
             <table class="data stack">
-                <thead><tr><th>Won</th><th>Prize</th><th>Customer</th><th>Invoice</th><th>Status</th><th>Delivery</th></tr></thead>
+                <thead><tr><th>تاريخ الفوز</th><th>الجائزة</th><th>العميل</th><th>الفاتورة</th><th>الحالة</th><th>التسليم</th></tr></thead>
                 <tbody>
                     @foreach (var a in Model.Result.Items)
                     {
                         <tr>
-                            <td data-label="Won" class="mono"><a href="/admin/spins/@a.SpinAttemptId">@CairoTime.Format(a.CreatedAtUtc)</a></td>
-                            <td data-label="Prize"><span class="strong">@a.PrizeName</span> <partial name="_Tier" model="a.Tier" /></td>
-                            <td data-label="Customer"><a href="/admin/customers/@a.CustomerId">@a.CustomerName</a> <span class="mono">@a.MaskedPhone</span></td>
-                            <td data-label="Invoice">@(a.Invoice ?? "—")</td>
-                            <td data-label="Status"><span class="badge @(a.Status == AwardStatus.Delivered ? "badge-ok" : "badge-warn")">@a.Status</span></td>
-                            <td data-label="Delivery">
+                            <td data-label="تاريخ الفوز" class="mono"><a href="/admin/spins/@a.SpinAttemptId">@AdminText.Date(a.CreatedAtUtc)</a></td>
+                            <td data-label="الجائزة"><span class="strong"><bdi>@a.PrizeName</bdi></span> <partial name="_Tier" model="a.Tier" /></td>
+                            <td data-label="العميل"><a href="/admin/customers/@a.CustomerId"><bdi>@a.CustomerName</bdi></a> <bdi dir="ltr" class="mono">@a.MaskedPhone</bdi></td>
+                            <td data-label="الفاتورة"><bdi dir="ltr">@(a.Invoice ?? "—")</bdi></td>
+                            <td data-label="الحالة"><span class="badge @(a.Status == AwardStatus.Delivered ? "badge-ok" : "badge-warn")">@AdminText.Status(a.Status)</span></td>
+                            <td data-label="التسليم">
                                 @if (a.Status == AwardStatus.Pending)
                                 {
-                                    <form method="post" asp-antiforgery="true" action="/admin/awards/@a.Id/deliver" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end" data-confirm="Mark “@a.PrizeName” for @a.CustomerName as delivered?">
+                                    <form method="post" asp-antiforgery="true" action="/admin/awards/@a.Id/deliver" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end" data-confirm="تأكيد تسليم «@a.PrizeName» إلى @a.CustomerName؟">
                                         <input type="hidden" name="returnUrl" value="@here" />
-                                        <input class="input" name="note" maxlength="500" placeholder="Note (optional)" style="min-height:38px;padding:6px 10px;font-size:14px;width:170px" aria-label="Delivery note" />
-                                        <button type="submit" class="btn btn-xs btn-gold"><partial name="_Icon" model="@("check")" /> Delivered</button>
+                                        <input class="input" name="note" maxlength="500" placeholder="ملاحظة (اختياري)" style="min-height:38px;padding:6px 10px;font-size:14px;width:170px" aria-label="ملاحظة التسليم" />
+                                        <button type="submit" class="btn btn-xs btn-gold"><partial name="_Icon" model="@("check")" /> تأكيد التسليم</button>
                                     </form>
                                 }
                                 else
                                 {
-                                    <span class="mono">@(a.DeliveredAtUtc is { } d ? CairoTime.Format(d) : "")</span> <span class="dim">by @a.DeliveredBy</span>
+                                    <span class="mono">@(a.DeliveredAtUtc is { } d ? AdminText.Date(d) : "")</span> <span class="dim">بواسطة <bdi>@a.DeliveredBy</bdi></span>
                                     @if (a.Note is not null) { <div class="hint">@a.Note</div> }
                                 }
                             </td>

@@ -46,7 +46,8 @@ builder.Services.AddIdentityCore<AdminUser>(o =>
         o.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
         o.User.RequireUniqueEmail = true;
     })
-    .AddEntityFrameworkStores<AppDbContext>();
+    .AddEntityFrameworkStores<AppDbContext>()
+    .AddErrorDescriber<ArabicIdentityErrorDescriber>();
 
 builder.Services.AddDataProtection()
     .SetApplicationName("SamyrTechWay.SpinWin")
@@ -61,7 +62,23 @@ builder.Services.AddAntiforgery(o =>
     o.Cookie.Name = ".stw.af";
     o.Cookie.SecurePolicy = security.RequireHttps ? CookieSecurePolicy.Always : CookieSecurePolicy.SameAsRequest;
 });
-builder.Services.AddControllersWithViews(o => o.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()));
+builder.Services.AddControllersWithViews(o =>
+{
+    o.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
+    // Only admin forms bind typed values, and the admin dashboard is Arabic.
+    var m = o.ModelBindingMessageProvider;
+    m.SetValueMustNotBeNullAccessor(_ => "هذا الحقل مطلوب.");
+    m.SetMissingBindRequiredValueAccessor(_ => "هذا الحقل مطلوب.");
+    m.SetMissingKeyOrValueAccessor(() => "هذا الحقل مطلوب.");
+    m.SetMissingRequestBodyRequiredValueAccessor(() => "الطلب فارغ.");
+    m.SetAttemptedValueIsInvalidAccessor((value, _) => $"القيمة «{value}» غير صحيحة.");
+    m.SetNonPropertyAttemptedValueIsInvalidAccessor(value => $"القيمة «{value}» غير صحيحة.");
+    m.SetUnknownValueIsInvalidAccessor(_ => "القيمة غير صحيحة.");
+    m.SetNonPropertyUnknownValueIsInvalidAccessor(() => "القيمة غير صحيحة.");
+    m.SetValueIsInvalidAccessor(value => $"القيمة «{value}» غير صحيحة.");
+    m.SetValueMustBeANumberAccessor(_ => "يجب إدخال رقم.");
+    m.SetNonPropertyValueMustBeANumberAccessor(() => "يجب إدخال رقم.");
+});
 builder.Services.AddHttpContextAccessor();
 // Emit Arabic as real characters instead of numeric entities (still fully HTML-encoded for safety).
 builder.Services.Configure<WebEncoderOptions>(o => o.TextEncoderSettings = new TextEncoderSettings(UnicodeRanges.All));

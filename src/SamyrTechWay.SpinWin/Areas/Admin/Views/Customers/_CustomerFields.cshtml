@@ -10,7 +10,7 @@
     <div class="field">
         <label class="label" asp-for="Phone"></label>
         <input class="input" asp-for="Phone" type="tel" inputmode="tel" autocomplete="off" placeholder="010 1234 5678" dir="ltr" />
-        <span class="hint">Egyptian mobile: 01X XXXX XXXX, +20… or 20… are all accepted.</span>
+        <span class="hint">رقم موبايل مصري: يُقبل بصيغة <bdi dir="ltr">01X XXXX XXXX</bdi> أو <bdi dir="ltr">+20…</bdi> أو <bdi dir="ltr">20…</bdi>.</span>
         <span class="field-error" asp-validation-for="Phone"></span>
     </div>
     <div class="field">
@@ -28,14 +28,14 @@
         <div class="field">
             <label class="label" asp-for="InitialCredits"></label>
             <input class="input" asp-for="InitialCredits" type="number" min="0" max="@CustomerAdminService.MaxInitialCredits" inputmode="numeric" />
-            <span class="hint">One spin per laptop purchase is the default.</span>
+            <span class="hint">الافتراضي لفّة واحدة لكل لابتوب يتم شراؤه.</span>
             <span class="field-error" asp-validation-for="InitialCredits"></span>
         </div>
     }
     <div class="field span-2">
         <label class="label" asp-for="Notes"></label>
         <textarea class="textarea" asp-for="Notes" rows="3"></textarea>
-        <span class="hint">Private — never shown to the customer.</span>
+        <span class="hint">خاصة بالإدارة ولا تظهر للعميل أبدًا.</span>
         <span class="field-error" asp-validation-for="Notes"></span>
     </div>
 </div>
